@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+injectWorkspacePackages: true
+
+allowBuilds:
+  esbuild: true
+
+catalog:
+  typescript: ^7.0.2
+  vitest: ^4.1.0
+  zod: ^4.4.3
