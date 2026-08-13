@@ -1,0 +1,19 @@
+services:
+  sprintly:
+    build:
+      context: .
+    container_name: sprintly
+    environment:
+      APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD in .env}
+      DATABASE_PATH: /app/data/sprintly.sqlite
+      NODE_ENV: production
+      PORT: 3000
+      WEB_ROOT: /app/web
+    ports:
+      - "${PORT:-3000}:3000"
+    restart: unless-stopped
+    volumes:
+      - sprintly-data:/app/data
+
+volumes:
+  sprintly-data:
