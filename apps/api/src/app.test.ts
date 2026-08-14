@@ -60,6 +60,7 @@ describe("Sprintly API", () => {
 		});
 		expect(created.statusCode).toBe(201);
 		expect(created.json().initialPlannedDate).toBe(sprintStart);
+		expect(created.json().completedDate).toBeNull();
 
 		const placedDay = addDays(sprintStart, 2);
 		const moved = await app.inject({
@@ -88,6 +89,22 @@ describe("Sprintly API", () => {
 		});
 		expect(movedAgain.json().initialPlannedDate).toBe(placedDay);
 		expect(movedAgain.json().lastPlannedDate).toBe(addDays(nextSprint, 1));
+
+		const completed = await app.inject({
+			method: "PATCH",
+			url: `/api/tasks/${created.json().id}`,
+			headers: { cookie, "x-sprintly-request": "web" },
+			payload: { version: 3, status: "DONE" }
+		});
+		expect(completed.json().completedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+		const reopened = await app.inject({
+			method: "PATCH",
+			url: `/api/tasks/${created.json().id}`,
+			headers: { cookie, "x-sprintly-request": "web" },
+			payload: { version: 4, status: "DOING" }
+		});
+		expect(reopened.json().completedDate).toBeNull();
 	});
 
 	it("updates a category color", async () => {

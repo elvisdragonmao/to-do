@@ -31,6 +31,7 @@ type TaskRow = {
 	urgency: number;
 	estimated_hours: number | null;
 	due_date: string | null;
+	completed_date: string | null;
 	status: Task["status"];
 	sort_order: number;
 	version: number;
@@ -134,6 +135,7 @@ export class SprintlyDatabase {
 			urgency: input.urgency,
 			estimatedHours: input.estimatedHours,
 			dueDate: input.dueDate,
+			completedDate: input.status === "DONE" ? currentIsoDate() : null,
 			status: input.status,
 			sortOrder: Date.now(),
 			version: 1
@@ -144,8 +146,8 @@ export class SprintlyDatabase {
 				`INSERT INTO tasks (
           id, title, description, created_at, updated_at, sprint_start, scheduled_date,
           initial_planned_date, last_planned_date, category_id, urgency,
-          estimated_hours, due_date, status, sort_order, version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          estimated_hours, due_date, completed_date, status, sort_order, version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			)
 			.run(
 				task.id,
@@ -161,6 +163,7 @@ export class SprintlyDatabase {
 				task.urgency,
 				task.estimatedHours,
 				task.dueDate,
+				task.completedDate,
 				task.status,
 				task.sortOrder,
 				task.version
@@ -181,6 +184,8 @@ export class SprintlyDatabase {
 		});
 
 		const placementChanged = nextSprintStart !== current.sprintStart || nextScheduledDate !== current.scheduledDate;
+		const nextStatus = input.status ?? current.status;
+		const automaticCompletedDate = current.status !== "DONE" && nextStatus === "DONE" ? currentIsoDate() : current.status === "DONE" && nextStatus !== "DONE" ? null : current.completedDate;
 		const automaticHistory = placementChanged
 			? resolvePlacementHistory(current, nextSprintStart, nextScheduledDate)
 			: {
@@ -195,6 +200,7 @@ export class SprintlyDatabase {
 			scheduledDate: nextScheduledDate,
 			initialPlannedDate: input.initialPlannedDate ?? automaticHistory.initialPlannedDate,
 			lastPlannedDate: input.lastPlannedDate ?? automaticHistory.lastPlannedDate,
+			completedDate: input.completedDate === undefined ? automaticCompletedDate : input.completedDate,
 			updatedAt: new Date().toISOString(),
 			version: current.version + 1
 		};
@@ -204,7 +210,7 @@ export class SprintlyDatabase {
 				`UPDATE tasks SET
           title = ?, description = ?, updated_at = ?, sprint_start = ?, scheduled_date = ?,
           initial_planned_date = ?, last_planned_date = ?, category_id = ?, urgency = ?,
-          estimated_hours = ?, due_date = ?, status = ?, sort_order = ?, version = ?
+          estimated_hours = ?, due_date = ?, completed_date = ?, status = ?, sort_order = ?, version = ?
         WHERE id = ? AND version = ?`
 			)
 			.run(
@@ -219,6 +225,7 @@ export class SprintlyDatabase {
 				next.urgency,
 				next.estimatedHours,
 				next.dueDate,
+				next.completedDate,
 				next.status,
 				next.sortOrder,
 				next.version,
@@ -272,6 +279,7 @@ export class SprintlyDatabase {
         urgency INTEGER NOT NULL CHECK (urgency BETWEEN 1 AND 4),
         estimated_hours REAL CHECK (estimated_hours IS NULL OR estimated_hours >= 0),
         due_date TEXT,
+        completed_date TEXT,
         status TEXT NOT NULL CHECK (status IN ('TODO', 'DOING', 'DONE')),
         sort_order REAL NOT NULL,
         version INTEGER NOT NULL DEFAULT 1
@@ -307,10 +315,16 @@ function mapTask(row: TaskRow): Task {
 		urgency: row.urgency,
 		estimatedHours: row.estimated_hours,
 		dueDate: row.due_date,
+		completedDate: row.completed_date,
 		status: row.status,
 		sortOrder: row.sort_order,
 		version: row.version
 	};
+}
+
+function currentIsoDate(now = new Date()): string {
+	const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+	return local.toISOString().slice(0, 10);
 }
 
 function mapCategory(row: CategoryRow): Category {

@@ -8,6 +8,7 @@ services:
       DATABASE_PATH: /app/data/sprintly.sqlite
       NODE_ENV: production
       PORT: 3000
+      TZ: Asia/Taipei
       WEB_ROOT: /app/web
     ports:
       - "${PORT:-3000}:3000"

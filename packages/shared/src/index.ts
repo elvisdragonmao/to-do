@@ -33,6 +33,7 @@ export const taskSchema = z.object({
 	urgency: urgencySchema,
 	estimatedHours: z.number().min(0).max(10000).nullable(),
 	dueDate: isoDateSchema.nullable(),
+	completedDate: isoDateSchema.nullable(),
 	status: taskStatusSchema,
 	sortOrder: z.number(),
 	version: z.number().int().positive()
@@ -87,6 +88,7 @@ export const updateTaskSchema = z
 		urgency: urgencySchema.optional(),
 		estimatedHours: z.number().min(0).max(10000).nullable().optional(),
 		dueDate: isoDateSchema.nullable().optional(),
+		completedDate: isoDateSchema.nullable().optional(),
 		status: taskStatusSchema.optional(),
 		sortOrder: z.number().optional(),
 		version: z.number().int().positive()

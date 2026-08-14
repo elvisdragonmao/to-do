@@ -23,6 +23,7 @@ export function useTaskMutations() {
 				updatedAt: now,
 				initialPlannedDate: input.scheduledDate ?? input.sprintStart,
 				lastPlannedDate: input.scheduledDate ?? input.sprintStart,
+				completedDate: input.status === "DONE" ? currentIsoDate() : null,
 				sortOrder: Date.now(),
 				version: 1
 			};
@@ -55,6 +56,15 @@ export function useTaskMutations() {
 			const sprintStart = input.sprintStart ?? current.sprintStart;
 			const scheduledDate = input.scheduledDate === undefined ? current.scheduledDate : input.scheduledDate;
 			const placementChanged = sprintStart !== current.sprintStart || scheduledDate !== current.scheduledDate;
+			const nextStatus = input.status ?? current.status;
+			const completedDate =
+				input.completedDate !== undefined
+					? input.completedDate
+					: current.status !== "DONE" && nextStatus === "DONE"
+						? currentIsoDate()
+						: current.status === "DONE" && nextStatus !== "DONE"
+							? null
+							: current.completedDate;
 			const history = placementChanged
 				? resolvePlacementHistory(current, sprintStart, scheduledDate)
 				: {
@@ -68,6 +78,7 @@ export function useTaskMutations() {
 				scheduledDate,
 				initialPlannedDate: input.initialPlannedDate ?? history.initialPlannedDate,
 				lastPlannedDate: input.lastPlannedDate ?? history.lastPlannedDate,
+				completedDate,
 				updatedAt: new Date().toISOString(),
 				version: current.version + 1
 			};
@@ -137,4 +148,9 @@ function replaceTask(client: ReturnType<typeof useQueryClient>, id: string, task
 
 function messageFrom(error: unknown): string {
 	return error instanceof Error ? error.message : "無法同步變更，已恢復原狀";
+}
+
+function currentIsoDate(now = new Date()): string {
+	const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+	return local.toISOString().slice(0, 10);
 }
