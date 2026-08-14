@@ -1,4 +1,4 @@
-@import url("https://font.emtech.cc/fonts/MiSansTC");
+@import url("https://font.emtech.cc/css/MiSansTC");
 
 :root {
 	color-scheme: light;
@@ -49,8 +49,8 @@
 	--em-color-brown: #5a4943;
 	--em-color-ink: #282421;
 
-	--md-ref-typeface-brand: "Roboto Flex", Roboto, Inter, sans-serif;
-	--md-ref-typeface-plain: "Roboto Flex", Roboto, Inter, sans-serif;
+	--md-ref-typeface-brand: MiSansTC, sans-serif;
+	--md-ref-typeface-plain: MiSansTC, sans-serif;
 	--md-sys-typescale-headline-small-font: var(--md-ref-typeface-brand);
 	--md-sys-typescale-headline-small-size: 1.5rem;
 	--md-sys-typescale-headline-small-line-height: 2rem;
