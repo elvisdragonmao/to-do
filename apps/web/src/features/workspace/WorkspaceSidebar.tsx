@@ -19,7 +19,7 @@ type WorkspaceSidebarProps = {
 	onClose: () => void;
 	onCreate: (target: PlacementTarget, values: QuickCreateValues) => void;
 	onSearch: (value: string) => void;
-	onSelectTask: (taskId: string) => void;
+	onSelectTask: (task: Task) => void;
 	onStartCreate: (target: PlacementTarget) => void;
 	open: boolean;
 	projection: DropProjection;
@@ -93,7 +93,7 @@ function CategoryGroup(props: WorkspaceSidebarProps & { category: Category }) {
 				</header>
 				{props.activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={props.onCancelCreate} onCreate={values => props.onCreate(target, values)} /> : null}
 				{categoryTasks.map(task => (
-					<button className="backlog-task" key={task.id} onClick={() => props.onSelectTask(task.id)} type="button">
+					<button className="backlog-task" key={task.id} onClick={() => props.onSelectTask(task)} type="button">
 						<strong>{task.title}</strong>
 						<span>
 							{task.estimatedHours === null ? null : `${task.estimatedHours}h`}

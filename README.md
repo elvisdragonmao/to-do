@@ -6,10 +6,11 @@
 
 - Kanban View：`To Do`、`In Progress`、`Done`。
 - 星期 View：`Inbox`、Monday 到 Sunday。
+- Backlog：跨所有 sprint 顯示尚未進入 `Done` 的項目，並依分類整理。
 - 垂直 sprint pager：只有項目看板上下連續滾動，週與週之間保留 16px gap，並使用 scroll snap 吸附到上一週或下一週；日期列、View 控制與工具列固定在 viewport。
 - 右側固定月份行事曆：瀏覽器決定下一個 snap target 時，同一根週選取 bar 就會以 `translateY` 同步移動；整週完成時顯示冰藍狀態色。
-- 整張卡片拖曳：拖曳時顯示浮空卡片，放置位置先保留預覽空位。
-- 卡片原位編輯：標題、描述、狀態、緊急程度、分類、時數與日期直接轉為 input/select，不開啟放大 dialog。
+- 整張卡片拖曳：拖曳期間 sprint pager 會鎖在目前週；浮空卡片下方只保留真正的放置空位，也能直接拖到小日曆的日期，跨 sprint 安排工作日。
+- 卡片原位編輯：標題、描述、狀態、緊急程度、分類、時數與日期直接轉為 input/select，不開啟放大 dialog；空描述不佔版面，從標題按 `Enter` 進入描述、按 `Cmd`/`Ctrl` + `Enter` 一次儲存文字欄位。
 - 描述內的 `http://` 或 `https://` 網址可直接開啟。
 - 分類可由右鍵或長按選單修改顏色。
 - 搜尋結果會自動捲到第一筆符合項目，並降低其他卡片的不透明度。
@@ -61,6 +62,8 @@
 ```text
 N → 1 → Study Physics → Tab → 1.5 → Tab → 20260830 → Enter
 ```
+
+若要同時加入描述，在標題欄按 `Enter` 會展開並聚焦描述欄；完成後按 `Cmd`/`Ctrl` + `Enter` 建立項目。描述留白時不會顯示空白列。
 
 ## 架構
 

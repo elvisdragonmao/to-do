@@ -24,7 +24,7 @@ import { Spinner } from "../../components/Spinner.js";
 import { SyncIndicator } from "../../components/SyncIndicator.js";
 import { formatSprintLabel } from "../../date-format.js";
 import { Icon } from "../../icons.js";
-import { categoriesQuery, persister, queryKeys, sprintTasksQuery } from "../../queries.js";
+import { backlogTasksQuery, categoriesQuery, persister, queryKeys, sprintTasksQuery } from "../../queries.js";
 import { useTaskMutations } from "../../task-mutations.js";
 import { useTheme } from "../../theme.js";
 import { useCategoryMutations } from "../categories/useCategoryMutations.js";
@@ -53,6 +53,7 @@ export function Workspace() {
 	const tasksQuery = useQuery(sprintTasksQuery(sprintStart));
 	const previousTasksQuery = useQuery(sprintTasksQuery(previousSprintStart));
 	const nextTasksQuery = useQuery(sprintTasksQuery(nextSprintStart));
+	const backlogQuery = useQuery(backlogTasksQuery());
 	const categoriesResult = useQuery(categoriesQuery());
 	const taskMutations = useTaskMutations();
 	const categoryMutations = useCategoryMutations();
@@ -71,7 +72,9 @@ export function Workspace() {
 	const [calendarDirection, setCalendarDirection] = useState<SprintPagerDirection>(0);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const pagerRef = useRef<HTMLElement>(null);
+	const pendingFocusTaskRef = useRef<string | null>(null);
 	const tasks = tasksQuery.data?.tasks ?? [];
+	const backlogTasks = backlogQuery.data?.tasks ?? [];
 	const categories = categoriesResult.data ?? [];
 	const calendarSprintStart = calendarDirection === 0 ? sprintStart : adjacentSprint(sprintStart, calendarDirection);
 	const calendarTasks = calendarDirection < 0 ? (previousTasksQuery.data?.tasks ?? []) : calendarDirection > 0 ? (nextTasksQuery.data?.tasks ?? []) : tasks;
@@ -89,6 +92,13 @@ export function Workspace() {
 				.map(task => task.id)
 		);
 	}, [categories, deferredSearch, tasks]);
+	const visibleBacklogTasks = useMemo(() => {
+		if (!deferredSearch) return backlogTasks;
+		return backlogTasks.filter(task => {
+			const category = categories.find(item => item.id === task.categoryId)?.name ?? "";
+			return `${task.title} ${task.description} ${category}`.toLocaleLowerCase("zh-TW").includes(deferredSearch);
+		});
+	}, [backlogTasks, categories, deferredSearch]);
 
 	const setView = useCallback((next: ViewMode) => {
 		startTransition(() => setViewState(next));
@@ -99,14 +109,18 @@ export function Workspace() {
 	const goToSprint = useCallback((next: string) => navigate(`/app/sprint/${next}`), [navigate]);
 	const goPreviousSprint = useCallback(() => goToSprint(previousSprintStart), [goToSprint, previousSprintStart]);
 	const goNextSprint = useCallback(() => goToSprint(nextSprintStart), [goToSprint, nextSprintStart]);
-	const goRelative = useSprintPager(pagerRef, sprintStart, goPreviousSprint, goNextSprint, setCalendarDirection);
-	const forwardChromeWheel = useCallback((event: ReactWheelEvent<HTMLElement>) => {
-		const pager = pagerRef.current;
-		if (!pager || pager.contains(event.target as Node) || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
-		const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 32 : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? pager.clientHeight : 1;
-		const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-		pager.scrollBy({ behavior: reducedMotion ? "auto" : "smooth", top: event.deltaY * scale });
-	}, []);
+	const dragging = activeTask !== null;
+	const goRelative = useSprintPager(pagerRef, sprintStart, goPreviousSprint, goNextSprint, setCalendarDirection, dragging);
+	const forwardChromeWheel = useCallback(
+		(event: ReactWheelEvent<HTMLElement>) => {
+			const pager = pagerRef.current;
+			if (dragging || !pager || pager.contains(event.target as Node) || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+			const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 32 : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? pager.clientHeight : 1;
+			const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+			pager.scrollBy({ behavior: reducedMotion ? "auto" : "smooth", top: event.deltaY * scale });
+		},
+		[dragging]
+	);
 	const selectSprint = useCallback(
 		(next: string) => {
 			if (next === previousSprintStart) goRelative(-1);
@@ -125,6 +139,19 @@ export function Workspace() {
 			});
 		}
 	}, []);
+	const selectBacklogTask = useCallback(
+		(task: Task) => {
+			setSidebarOpen(false);
+			if (task.sprintStart === sprintStart) {
+				selectTask(task.id, true);
+				return;
+			}
+			pendingFocusTaskRef.current = task.id;
+			setSelectedTaskId(task.id);
+			goToSprint(task.sprintStart);
+		},
+		[goToSprint, selectTask, sprintStart]
+	);
 	const focusSearch = useCallback(() => {
 		setSidebarOpen(true);
 		requestAnimationFrame(() => searchRef.current?.focus());
@@ -195,6 +222,12 @@ export function Workspace() {
 		if (match) selectTask(match.id, true);
 	}, [deferredSearch, searchMatches, selectTask, tasks]);
 	useEffect(() => {
+		const taskId = pendingFocusTaskRef.current;
+		if (!taskId || !tasks.some(task => task.id === taskId)) return;
+		pendingFocusTaskRef.current = null;
+		selectTask(taskId, true);
+	}, [selectTask, tasks]);
+	useEffect(() => {
 		const mobile = window.matchMedia("(max-width: 839px)");
 		const closeOnMobile = (event: MediaQueryListEvent) => {
 			if (event.matches) setSidebarOpen(false);
@@ -210,19 +243,22 @@ export function Workspace() {
 	}, [beginTargeting, searchParams, setSearchParams]);
 
 	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
-	const setProjectionFromOver = (event: DragOverEvent | DragEndEvent) => {
-		const data = event.over?.data.current as { target?: PlacementTarget; beforeTaskId?: string } | undefined;
-		return data?.target ? { target: data.target, ...(data.beforeTaskId ? { beforeTaskId: data.beforeTaskId } : {}) } : null;
-	};
-	const handleDragOver = (event: DragOverEvent) => setProjection(setProjectionFromOver(event));
+	const handleDragOver = useCallback((event: DragOverEvent) => setProjection(projectionFromOver(event)), []);
+	const handleDragStart = useCallback((event: DragStartEvent) => {
+		const pager = pagerRef.current;
+		const currentPage = pager?.querySelector<HTMLElement>(".sprint-page--current");
+		if (pager && currentPage) pager.scrollTop = currentPage.offsetTop;
+		setProjection(null);
+		setActiveTask(event.active.data.current?.task as Task);
+	}, []);
 	const handleDragEnd = (event: DragEndEvent) => {
 		const task = event.active.data.current?.task as Task | undefined;
-		const next = setProjectionFromOver(event);
+		const next = projectionFromOver(event);
 		setActiveTask(null);
 		setProjection(null);
 		if (!task || !next) return;
 		const destination = tasksForTarget(
-			tasks.filter(candidate => candidate.id !== task.id),
+			(next.target.kind === "day" && next.target.sprintStart !== sprintStart ? backlogTasks : tasks).filter(candidate => candidate.id !== task.id),
 			next.target
 		);
 		const sortOrder = sortOrderBefore(destination, next.beforeTaskId);
@@ -233,6 +269,7 @@ export function Workspace() {
 
 	return (
 		<DndContext
+			autoScroll={false}
 			collisionDetection={collisionDetection}
 			onDragCancel={() => {
 				setActiveTask(null);
@@ -240,7 +277,7 @@ export function Workspace() {
 			}}
 			onDragEnd={handleDragEnd}
 			onDragOver={handleDragOver}
-			onDragStart={(event: DragStartEvent) => setActiveTask(event.active.data.current?.task as Task)}
+			onDragStart={handleDragStart}
 			sensors={sensors}
 		>
 			<div className="app-shell">
@@ -254,17 +291,14 @@ export function Workspace() {
 					onClose={() => setSidebarOpen(false)}
 					onCreate={createTask}
 					onSearch={setSearch}
-					onSelectTask={taskId => {
-						setSidebarOpen(false);
-						selectTask(taskId, true);
-					}}
+					onSelectTask={selectBacklogTask}
 					onStartCreate={startCreate}
 					open={sidebarOpen}
 					projection={projection}
 					search={search}
 					searchRef={searchRef}
 					targeting={targeting}
-					tasks={tasks}
+					tasks={visibleBacklogTasks}
 				/>
 
 				<main aria-label="Sprint" className="workspace" onWheel={forwardChromeWheel}>
@@ -281,7 +315,7 @@ export function Workspace() {
 					</header>
 
 					<div className="workspace-body">
-						<section aria-label="Sprint 項目" className="sprint-pager" ref={pagerRef}>
+						<section aria-label="Sprint 項目" className={`sprint-pager${dragging ? " is-dragging" : ""}`} ref={pagerRef}>
 							<SprintPreviewPage categories={categories} sprintStart={previousSprintStart} tasks={previousTasksQuery.data?.tasks ?? []} view={view} />
 							<section aria-label={`${formatSprintLabel(sprintStart)} 項目`} className="sprint-page sprint-page--current">
 								{tasksQuery.isPending && !tasksQuery.data ? (
@@ -319,7 +353,7 @@ export function Workspace() {
 							</section>
 							<SprintPreviewPage categories={categories} sprintStart={nextSprintStart} tasks={nextTasksQuery.data?.tasks ?? []} view={view} />
 						</section>
-						<MiniCalendar onSelectSprint={selectSprint} sprintStart={calendarSprintStart} tasks={calendarTasks} />
+						<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={calendarSprintStart} tasks={calendarTasks} />
 					</div>
 					<UtilityDock onHelp={() => setShortcutsOpen(true)} onTheme={toggleTheme} theme={theme} />
 				</main>
@@ -328,10 +362,18 @@ export function Workspace() {
 			<CategoryDialog categories={categories} onClose={() => setCategoriesOpen(false)} open={categoriesOpen} />
 			<ShortcutDialog onClose={() => setShortcutsOpen(false)} open={shortcutsOpen} />
 			<DragOverlay dropAnimation={{ duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
-				{activeTask ? <TaskCardPreview category={categories.find(category => category.id === activeTask.categoryId)} task={activeTask} /> : null}
+				{activeTask ? (
+					<TaskCardPreview calendarTargeted={projection?.target.id.startsWith("calendar:")} category={categories.find(category => category.id === activeTask.categoryId)} task={activeTask} />
+				) : null}
 			</DragOverlay>
 		</DndContext>
 	);
+}
+
+function projectionFromOver(event: DragOverEvent | DragEndEvent): DropProjection {
+	const data = event.over?.data.current as { target?: PlacementTarget; beforeTaskId?: string } | undefined;
+	if (!data?.target || data.beforeTaskId === String(event.active.id)) return null;
+	return { target: data.target, ...(data.beforeTaskId ? { beforeTaskId: data.beforeTaskId } : {}) };
 }
 
 function ViewToggle({ onChange, value }: { onChange: (view: ViewMode) => void; value: ViewMode }) {

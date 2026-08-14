@@ -7,7 +7,8 @@ export function useSprintPager(
 	sprintStart: string,
 	onPrevious: () => void,
 	onNext: () => void,
-	onPreview?: (direction: SprintPagerDirection) => void
+	onPreview?: (direction: SprintPagerDirection) => void,
+	locked = false
 ): (direction: -1 | 1) => void {
 	const resetting = useRef(true);
 	const navigating = useRef(false);
@@ -77,11 +78,11 @@ export function useSprintPager(
 		const previewPage = (index: number) => setPreviewDirection(pageDirection(index));
 		const previewNearestPage = () => {
 			previewFrame = 0;
-			if (resetting.current || snapTargetDirection.current !== null) return;
+			if (locked || resetting.current || snapTargetDirection.current !== null) return;
 			previewPage(nearestPageIndex(element));
 		};
 		const settle = () => {
-			if (resetting.current || navigating.current) return;
+			if (locked || resetting.current || navigating.current) return;
 			const ignoreFor = ignoreUntil.current - performance.now();
 			if (ignoreFor > 0) {
 				window.clearTimeout(settleTimer);
@@ -103,12 +104,13 @@ export function useSprintPager(
 		};
 
 		const onScroll = () => {
+			if (locked) return;
 			window.clearTimeout(settleTimer);
 			settleTimer = window.setTimeout(settle, 120);
 			if (!previewFrame) previewFrame = requestAnimationFrame(previewNearestPage);
 		};
 		const onSnapChanging = (event: Event) => {
-			if (resetting.current) return;
+			if (locked || resetting.current) return;
 			const target = (event as Event & { snapTargetBlock?: Element | null }).snapTargetBlock;
 			const page = target ? sprintPages(element).indexOf(target as HTMLElement) : -1;
 			if (page >= 0) {
@@ -127,12 +129,12 @@ export function useSprintPager(
 			element.removeEventListener("scrollend", settle);
 			element.removeEventListener("scrollsnapchanging", onSnapChanging);
 		};
-	}, [onNext, onPrevious, ref, setPreviewDirection]);
+	}, [locked, onNext, onPrevious, ref, setPreviewDirection]);
 
 	return useCallback(
 		(direction: -1 | 1) => {
 			const element = ref.current;
-			if (!element || navigating.current) return;
+			if (!element || locked || navigating.current) return;
 			const offsets = pageOffsets(element);
 			const target = offsets[direction + 1];
 			if (target === undefined) return;
@@ -141,7 +143,7 @@ export function useSprintPager(
 			const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 			element.scrollTo({ behavior: reducedMotion ? "auto" : "smooth", top: target });
 		},
-		[ref, setPreviewDirection]
+		[locked, ref, setPreviewDirection]
 	);
 }
 

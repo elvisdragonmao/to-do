@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parseCompactDate } from "../../date-format.js";
-import { createInputForTarget, numberedTargets, weekTargets } from "./workspace-model.js";
+import { createInputForTarget, numberedTargets, updateForTarget, weekTargets } from "./workspace-model.js";
 
 describe("quick create", () => {
 	it("maps Kanban numbers to statuses and backlog categories", () => {
@@ -24,12 +24,38 @@ describe("quick create", () => {
 		const dueDate = parseCompactDate("20260830");
 		const input = createInputForTarget({
 			categoryId: "uncategorized",
+			description: "Electromagnetism",
 			dueDate,
 			estimatedHours: 1.5,
 			sprintStart: "2026-08-17",
 			target: weekTargets("2026-08-17")[1]!,
 			title: "Study Physics"
 		});
-		expect(input).toMatchObject({ title: "Study Physics", estimatedHours: 1.5, dueDate: "2026-08-30", scheduledDate: "2026-08-17" });
+		expect(input).toMatchObject({ title: "Study Physics", description: "Electromagnetism", estimatedHours: 1.5, dueDate: "2026-08-30", scheduledDate: "2026-08-17" });
+	});
+
+	it("moves a task to the sprint containing a calendar date", () => {
+		const task = {
+			id: "task",
+			title: "Move me",
+			description: "",
+			createdAt: "2026-08-01T00:00:00.000Z",
+			updatedAt: "2026-08-01T00:00:00.000Z",
+			sprintStart: "2026-08-10",
+			scheduledDate: null,
+			initialPlannedDate: "2026-08-10",
+			lastPlannedDate: "2026-08-10",
+			categoryId: "uncategorized",
+			urgency: 2 as const,
+			estimatedHours: null,
+			dueDate: null,
+			completedDate: null,
+			status: "TODO" as const,
+			sortOrder: 1,
+			version: 3
+		};
+		const input = updateForTarget(task, { id: "calendar:2026-08-19", kind: "day", label: "2026-08-19", scheduledDate: "2026-08-19", sprintStart: "2026-08-17" }, 1024);
+
+		expect(input).toEqual({ version: 3, sortOrder: 1024, sprintStart: "2026-08-17", scheduledDate: "2026-08-19" });
 	});
 });

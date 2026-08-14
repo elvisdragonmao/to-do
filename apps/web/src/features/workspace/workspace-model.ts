@@ -4,7 +4,7 @@ export type ViewMode = "kanban" | "week";
 
 export type PlacementTarget =
 	| { id: string; kind: "status"; label: string; status: TaskStatus }
-	| { id: string; kind: "day"; label: string; scheduledDate: string | null }
+	| { id: string; kind: "day"; label: string; scheduledDate: string | null; sprintStart: string }
 	| { id: string; kind: "category"; label: string; categoryId: string };
 
 export type NumberedTarget = PlacementTarget & { key: string };
@@ -17,12 +17,13 @@ export const STATUS_TARGETS: PlacementTarget[] = [
 
 export function weekTargets(sprintStart: string): PlacementTarget[] {
 	return [
-		{ id: "day:inbox", kind: "day", label: "Inbox", scheduledDate: null },
+		{ id: "day:inbox", kind: "day", label: "Inbox", scheduledDate: null, sprintStart },
 		...sprintDays(sprintStart).map((date, index) => ({
 			id: `day:${date}`,
 			kind: "day" as const,
 			label: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][index]!,
-			scheduledDate: date
+			scheduledDate: date,
+			sprintStart
 		}))
 	];
 }
@@ -42,6 +43,7 @@ export function numberedTargets(view: ViewMode, sprintStart: string, categories:
 
 export function createInputForTarget({
 	categoryId,
+	description,
 	dueDate,
 	estimatedHours,
 	sprintStart,
@@ -49,6 +51,7 @@ export function createInputForTarget({
 	title
 }: {
 	categoryId: string;
+	description: string;
 	dueDate: string | null;
 	estimatedHours: number | null;
 	sprintStart: string;
@@ -57,8 +60,8 @@ export function createInputForTarget({
 }): CreateTaskInput {
 	return {
 		title,
-		description: "",
-		sprintStart,
+		description,
+		sprintStart: target.kind === "day" ? target.sprintStart : sprintStart,
 		scheduledDate: target.kind === "day" ? target.scheduledDate : null,
 		categoryId: target.kind === "category" ? target.categoryId : categoryId,
 		urgency: 2,
@@ -69,7 +72,8 @@ export function createInputForTarget({
 }
 
 export function updateForTarget(task: Task, target: PlacementTarget, sortOrder: number): UpdateTaskInput {
-	const placement = target.kind === "day" ? { scheduledDate: target.scheduledDate } : target.kind === "status" ? { status: target.status } : { categoryId: target.categoryId };
+	const placement =
+		target.kind === "day" ? { scheduledDate: target.scheduledDate, sprintStart: target.sprintStart } : target.kind === "status" ? { status: target.status } : { categoryId: target.categoryId };
 	return { version: task.version, sortOrder, ...placement };
 }
 
