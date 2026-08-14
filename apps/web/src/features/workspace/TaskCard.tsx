@@ -44,24 +44,19 @@ export const TaskCard = memo(function TaskCard({ categories, category, container
 			ref={setNodeRef}
 			tabIndex={0}
 		>
-			<header className="task-card__header">
-				<EditableText className="task-card__title" disabled={Boolean(syncState)} label="標題" maxLength={160} onCommit={value => update("title", value)} value={task.title} />
-				<span aria-label={`緊急程度 ${task.urgency}`} className="urgency-flag">
-					<Icon name="flag" />
-				</span>
-				<DeleteButton disabled={Boolean(syncState)} onDelete={() => onDelete(task.id)} />
-			</header>
-
-			<EditableText
-				className="task-card__description"
+			<TaskTextEditor
+				actions={
+					<>
+						<span aria-label={`緊急程度 ${task.urgency}`} className="urgency-flag">
+							<Icon name="flag" />
+						</span>
+						<DeleteButton disabled={Boolean(syncState)} onDelete={() => onDelete(task.id)} />
+					</>
+				}
+				description={task.description}
 				disabled={Boolean(syncState)}
-				emptyLabel="描述"
-				label="描述"
-				maxLength={4000}
-				multiline
-				onCommit={value => update("description", value)}
-				renderValue={linkify}
-				value={task.description}
+				onCommit={input => onUpdate(task.id, { version: task.version, ...input })}
+				title={task.title}
 			/>
 
 			<div className="task-card__meta">
@@ -144,9 +139,9 @@ function DeleteButton({ disabled, onDelete }: { disabled: boolean; onDelete: () 
 	);
 }
 
-export function TaskCardPreview({ category, task }: { category: Category | undefined; task: Task }) {
+export function TaskCardPreview({ calendarTargeted = false, category, task }: { calendarTargeted?: boolean; category: Category | undefined; task: Task }) {
 	return (
-		<article className="task-card task-card--overlay">
+		<article className={`task-card task-card--overlay${calendarTargeted ? " task-card--calendar-overlay" : ""}`}>
 			<header className="task-card__header">
 				<strong className="task-card__title-preview">{task.title}</strong>
 				<span className={`urgency-flag urgency-${task.urgency}`}>
@@ -166,67 +161,124 @@ export function TaskCardPreview({ category, task }: { category: Category | undef
 	);
 }
 
-function EditableText({
-	className,
+function TaskTextEditor({
+	actions,
+	description,
 	disabled,
-	emptyLabel,
-	label,
-	maxLength,
-	multiline = false,
 	onCommit,
-	renderValue,
-	value
+	title
 }: {
-	className: string;
+	actions: ReactNode;
+	description: string;
 	disabled: boolean;
-	emptyLabel?: string;
-	label: string;
-	maxLength: number;
-	multiline?: boolean;
-	onCommit: (value: string) => void;
-	renderValue?: (value: string) => ReactNode;
-	value: string;
+	onCommit: (input: { title?: string; description?: string }) => void;
+	title: string;
 }) {
-	const [editing, setEditing] = useState(false);
-	const [draft, setDraft] = useState(value);
-	const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
-	useEffect(() => setDraft(value), [value]);
+	const [editing, setEditing] = useState<"title" | "description" | null>(null);
+	const [draftTitle, setDraftTitle] = useState(title);
+	const [draftDescription, setDraftDescription] = useState(description);
+	const titleRef = useRef<HTMLInputElement>(null);
+	const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
 	useEffect(() => {
-		if (editing) ref.current?.focus();
+		if (editing !== null) return;
+		setDraftTitle(title);
+		setDraftDescription(description);
+	}, [description, editing, title]);
+	useEffect(() => {
+		if (editing === "title") titleRef.current?.focus();
+		if (editing === "description") descriptionRef.current?.focus();
 	}, [editing]);
+
+	const begin = (field: "title" | "description") => {
+		if (disabled) return;
+		if (editing === null) {
+			setDraftTitle(title);
+			setDraftDescription(description);
+		}
+		setEditing(field);
+	};
+	const cancel = () => {
+		setDraftTitle(title);
+		setDraftDescription(description);
+		setEditing(null);
+	};
 	const commit = () => {
-		const next = draft.trim();
-		setEditing(false);
-		if ((label !== "標題" || next) && next !== value) onCommit(next);
-		else setDraft(value);
+		const nextTitle = draftTitle.trim();
+		const nextDescription = draftDescription.trim();
+		if (!nextTitle) {
+			setDraftTitle(title);
+			setEditing("title");
+			return;
+		}
+		const input: { title?: string; description?: string } = {};
+		if (nextTitle !== title) input.title = nextTitle;
+		if (nextDescription !== description) input.description = nextDescription;
+		setEditing(null);
+		if (Object.keys(input).length > 0) onCommit(input);
+	};
+	const blur = () => {
+		requestAnimationFrame(() => {
+			if (document.activeElement !== titleRef.current && document.activeElement !== descriptionRef.current) commit();
+		});
 	};
 	const keyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
 		if (event.key === "Escape") {
 			event.preventDefault();
-			setDraft(value);
-			setEditing(false);
-		} else if (event.key === "Enter" && (!multiline || event.metaKey || event.ctrlKey)) {
+			cancel();
+			return;
+		}
+		if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
 			event.preventDefault();
 			commit();
+			return;
+		}
+		if (event.key === "Enter" && editing === "title") {
+			event.preventDefault();
+			setEditing("description");
 		}
 	};
-	if (editing) {
-		const props = {
-			"aria-label": label,
-			className: `${className} inline-editor`,
-			maxLength,
-			onBlur: commit,
-			onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(event.target.value),
-			onKeyDown: keyDown,
-			ref,
-			value: draft
-		};
-		return multiline ? <textarea {...props} rows={2} /> : <input {...props} />;
-	}
+
 	return (
-		<button className={`${className} inline-value`} disabled={disabled} onClick={() => setEditing(true)} title={`編輯${label}`} type="button">
-			{value ? renderValue ? renderValue(value) : value : <span className="inline-value--empty">{emptyLabel ?? label}</span>}
-		</button>
+		<>
+			<header className="task-card__header">
+				{editing === "title" ? (
+					<input
+						aria-label="標題"
+						className="task-card__title inline-editor"
+						maxLength={160}
+						onBlur={blur}
+						onChange={event => setDraftTitle(event.target.value)}
+						onKeyDown={keyDown}
+						ref={titleRef}
+						value={draftTitle}
+					/>
+				) : (
+					<button className="task-card__title inline-value" disabled={disabled} onClick={() => begin("title")} title="編輯標題" type="button">
+						{editing === "description" ? draftTitle : title}
+					</button>
+				)}
+				{actions}
+			</header>
+
+			{editing === "description" ? (
+				<textarea
+					aria-label="描述"
+					className="task-card__description inline-editor"
+					maxLength={4000}
+					onBlur={blur}
+					onChange={event => setDraftDescription(event.target.value)}
+					onKeyDown={keyDown}
+					ref={descriptionRef}
+					rows={2}
+					value={draftDescription}
+				/>
+			) : description ? (
+				<button className="task-card__description inline-value" disabled={disabled} onClick={() => begin("description")} title="編輯描述" type="button">
+					{linkify(description)}
+				</button>
+			) : null}
+		</>
 	);
 }
 
