@@ -1,6 +1,6 @@
 import type { Category, Task } from "@em-todo/shared";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import { CategoryColorMenu } from "../categories/CategoryColorMenu.js";
 import { formatShortDate } from "../../date-format.js";
@@ -95,11 +95,23 @@ function CategoryGroup(props: WorkspaceSidebarProps & { category: Category }) {
 				</header>
 				{props.activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={props.onCancelCreate} onCreate={values => props.onCreate(target, values)} /> : null}
 				{categoryTasks.map(task => (
-					<BacklogTask containerId={target.id} key={task.id} onSelect={() => props.onSelectTask(task)} syncState={props.syncStates.get(task.id)} task={task} />
+					<BacklogDropSlot beforeTaskId={task.id} key={task.id} projected={Boolean(projected && props.projection?.beforeTaskId === task.id)} target={target}>
+						<BacklogTask containerId={target.id} onSelect={() => props.onSelectTask(task)} syncState={props.syncStates.get(task.id)} task={task} />
+					</BacklogDropSlot>
 				))}
-				{projected ? <div aria-hidden="true" className="backlog-drop-placeholder" /> : null}
+				{projected && !props.projection?.beforeTaskId ? <div aria-hidden="true" className="backlog-drop-placeholder" /> : null}
 			</section>
 		</CategoryColorMenu>
+	);
+}
+
+function BacklogDropSlot({ beforeTaskId, children, projected, target }: { beforeTaskId: string; children: ReactNode; projected: boolean; target: PlacementTarget }) {
+	const { setNodeRef } = useDroppable({ id: `slot:${target.id}:${beforeTaskId}`, data: { type: "slot", target, beforeTaskId } });
+	return (
+		<div className="backlog-drop-slot" ref={setNodeRef}>
+			{projected ? <div aria-hidden="true" className="backlog-drop-placeholder" /> : null}
+			{children}
+		</div>
 	);
 }
 

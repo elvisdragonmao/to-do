@@ -41,8 +41,14 @@ import { adjacentSprint, createInputForTarget, numberedTargets, sortOrderBefore,
 
 const collisionDetection: CollisionDetection = args => {
 	const pointerCollisions = pointerWithin(args);
-	return pointerCollisions.length > 0 ? pointerCollisions : closestCenter(args);
+	if (pointerCollisions.length === 0) return closestCenter(args);
+	const typeFor = (id: string | number) => args.droppableContainers.find(container => container.id === id)?.data.current?.type;
+	return pointerCollisions.toSorted((left, right) => collisionPriority(typeFor(left.id)) - collisionPriority(typeFor(right.id)));
 };
+
+function collisionPriority(type: unknown): number {
+	return type === "slot" || type === "calendar-day" || type === "task-trash" ? 0 : 1;
+}
 
 const PAGER_RADIUS = 12;
 const PAGER_QUERY_RADIUS = 2;
@@ -291,8 +297,9 @@ export function Workspace() {
 			return;
 		}
 		if (!task || !next) return;
+		const candidateTasks = next.target.kind === "category" ? backlogTasks : tasks;
 		const destination = tasksForTarget(
-			(next.target.kind === "day" && next.target.sprintStart !== sprintStart ? backlogTasks : tasks).filter(candidate => candidate.id !== task.id),
+			candidateTasks.filter(candidate => candidate.id !== task.id),
 			next.target
 		);
 		const sortOrder = sortOrderBefore(destination, next.beforeTaskId);
@@ -394,7 +401,7 @@ export function Workspace() {
 						</section>
 						<div className={`workspace-rail${dragging ? " is-dragging" : ""}`}>
 							<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={visibleSprintStart} tasks={visibleSprintTasks} />
-							<TaskTrash active={dragging} />
+							{dragging ? <TaskTrash active /> : null}
 						</div>
 					</div>
 					<UtilityDock onHelp={() => setShortcutsOpen(true)} onTheme={toggleTheme} theme={theme} />
@@ -403,7 +410,7 @@ export function Workspace() {
 
 			<CategoryDialog categories={categories} onClose={() => setCategoriesOpen(false)} open={categoriesOpen} />
 			<ShortcutDialog onClose={() => setShortcutsOpen(false)} open={shortcutsOpen} />
-			<DragOverlay dropAnimation={{ duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
+			<DragOverlay dropAnimation={null}>
 				{activeTask ? (
 					<TaskCardPreview
 						category={categories.find(category => category.id === activeTask.categoryId)}

@@ -12,6 +12,7 @@ export function useSprintPager(
 	const ignoreUntil = useRef(0);
 	const previewSprint = useRef(sprintStart);
 	const snapTargetSprint = useRef<string | null>(null);
+	const programmaticScrollFrame = useRef(0);
 	const setPreviewSprint = useCallback(
 		(nextSprint: string) => {
 			if (previewSprint.current === nextSprint) return;
@@ -44,6 +45,7 @@ export function useSprintPager(
 			if (frame !== undefined) cancelAnimationFrame(frame);
 		};
 	}, [resetToCurrentPage]);
+	useEffect(() => () => cancelAnimationFrame(programmaticScrollFrame.current), []);
 
 	useEffect(() => {
 		const element = ref.current;
@@ -139,7 +141,21 @@ export function useSprintPager(
 			snapTargetSprint.current = targetSprint;
 			setPreviewSprint(targetSprint);
 			const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-			element.scrollTo({ behavior: reducedMotion ? "auto" : "smooth", top: targetPage.offsetTop });
+			cancelAnimationFrame(programmaticScrollFrame.current);
+			if (reducedMotion) {
+				element.scrollTop = targetPage.offsetTop;
+				return;
+			}
+			const startTop = element.scrollTop;
+			const distance = targetPage.offsetTop - startTop;
+			const startTime = performance.now();
+			const step = (now: number) => {
+				const progress = Math.min(1, (now - startTime) / 220);
+				const eased = 1 - Math.pow(1 - progress, 4);
+				element.scrollTop = startTop + distance * eased;
+				if (progress < 1) programmaticScrollFrame.current = requestAnimationFrame(step);
+			};
+			programmaticScrollFrame.current = requestAnimationFrame(step);
 		},
 		[locked, ref, setPreviewSprint, sprintStart]
 	);

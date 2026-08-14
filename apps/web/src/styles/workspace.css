@@ -221,6 +221,11 @@
 	font-size: var(--md-sys-typescale-label-small-size);
 }
 
+.backlog-drop-slot {
+	display: grid;
+	gap: var(--space-2);
+}
+
 .backlog-drop-placeholder {
 	background: var(--md-sys-color-primary-container);
 	border: 2px dashed var(--md-sys-color-primary);
@@ -1015,7 +1020,7 @@
 	top: 21px;
 	transform: translateY(calc(var(--calendar-week) * 22px));
 	transition:
-		transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-decelerate),
 		background-color var(--md-sys-motion-duration-short);
 	will-change: transform;
 }
@@ -1026,6 +1031,7 @@
 
 .task-trash {
 	align-items: center;
+	animation: task-trash-enter var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-decelerate);
 	background: var(--md-sys-color-surface-container-low);
 	border: 1px dashed var(--md-sys-color-outline-variant);
 	border-radius: var(--md-sys-shape-corner-large);
@@ -1042,6 +1048,13 @@
 		border-color var(--md-sys-motion-duration-short),
 		color var(--md-sys-motion-duration-short),
 		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+}
+
+@keyframes task-trash-enter {
+	from {
+		opacity: 0;
+		transform: translateY(-8px);
+	}
 }
 
 .task-trash svg {
