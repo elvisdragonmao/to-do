@@ -52,7 +52,13 @@ export function useSprintPager(ref: RefObject<HTMLElement | null>, sprintStart: 
 		let settleTimer = 0;
 
 		const settle = () => {
-			if (resetting.current || navigating.current || performance.now() < ignoreUntil.current) return;
+			if (resetting.current || navigating.current) return;
+			const ignoreFor = ignoreUntil.current - performance.now();
+			if (ignoreFor > 0) {
+				window.clearTimeout(settleTimer);
+				settleTimer = window.setTimeout(settle, ignoreFor + 20);
+				return;
+			}
 			const pageHeight = element.clientHeight;
 			if (!pageHeight) return;
 			const page = Math.round(element.scrollTop / pageHeight);
