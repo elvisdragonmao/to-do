@@ -6,8 +6,8 @@
 
 - Kanban View：`To Do`、`In Progress`、`Done`。
 - 星期 View：`Inbox`、Monday 到 Sunday。
-- 垂直 sprint pager：上下連續滾動，使用 scroll snap 吸附到上一週或下一週。
-- 右側月份行事曆：同一根週選取 bar 以 `translateY` 上下移動；整週完成時顯示成功色。
+- 垂直 sprint pager：只有項目看板上下連續滾動，使用 scroll snap 吸附到上一週或下一週；日期列、View 控制與工具列固定在 viewport。
+- 右側固定月份行事曆：同一根週選取 bar 以 `translateY` 上下移動；整週完成時顯示成功色。
 - 整張卡片拖曳：拖曳時顯示浮空卡片，放置位置先保留預覽空位。
 - 卡片原位編輯：標題、描述、狀態、緊急程度、分類、時數與日期直接轉為 input/select，不開啟放大 dialog。
 - 描述內的 `http://` 或 `https://` 網址可直接開啟。

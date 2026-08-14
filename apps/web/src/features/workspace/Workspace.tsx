@@ -14,7 +14,7 @@ import {
 	type DragStartEvent
 } from "@dnd-kit/core";
 import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
-import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { logout } from "../../api.js";
@@ -69,7 +69,7 @@ export function Workspace() {
 	const [categoriesOpen, setCategoriesOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
 	const searchRef = useRef<HTMLInputElement>(null);
-	const workspaceRef = useRef<HTMLElement>(null);
+	const pagerRef = useRef<HTMLElement>(null);
 	const tasks = tasksQuery.data?.tasks ?? [];
 	const categories = categoriesResult.data ?? [];
 	const uncategorized = categories.find(category => category.isDefault)?.id ?? categories[0]?.id ?? "uncategorized";
@@ -96,7 +96,13 @@ export function Workspace() {
 	const goToSprint = useCallback((next: string) => navigate(`/app/sprint/${next}`), [navigate]);
 	const goPreviousSprint = useCallback(() => goToSprint(previousSprintStart), [goToSprint, previousSprintStart]);
 	const goNextSprint = useCallback(() => goToSprint(nextSprintStart), [goToSprint, nextSprintStart]);
-	const goRelative = useSprintPager(workspaceRef, sprintStart, goPreviousSprint, goNextSprint);
+	const goRelative = useSprintPager(pagerRef, sprintStart, goPreviousSprint, goNextSprint);
+	const forwardChromeWheel = useCallback((event: ReactWheelEvent<HTMLElement>) => {
+		const pager = pagerRef.current;
+		if (!pager || pager.contains(event.target as Node) || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+		const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 32 : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? pager.clientHeight : 1;
+		pager.scrollBy({ behavior: "auto", top: event.deltaY * scale });
+	}, []);
 	const selectSprint = useCallback(
 		(next: string) => {
 			if (next === previousSprintStart) goRelative(-1);
@@ -257,23 +263,23 @@ export function Workspace() {
 					tasks={tasks}
 				/>
 
-				<main aria-label="Sprint" className="workspace" ref={workspaceRef}>
-					<SprintPreviewPage categories={categories} sprintStart={previousSprintStart} tasks={previousTasksQuery.data?.tasks ?? []} view={view} />
-					<section className="sprint-page sprint-page--current">
-						<header className="top-app-bar">
-							<button aria-label="開啟 Backlog" className="mobile-menu" onClick={() => setSidebarOpen(true)} type="button">
-								<Icon name="menu" />
-							</button>
-							<h1>{formatSprintLabel(sprintStart)}</h1>
-							<SyncIndicator />
-							<ViewToggle onChange={setView} value={view} />
-							<button aria-label="新增項目" className="mobile-create" onClick={beginTargeting} title="新增項目 (N)" type="button">
-								<Icon name="add" />
-							</button>
-						</header>
+				<main aria-label="Sprint" className="workspace" onWheel={forwardChromeWheel}>
+					<header className="top-app-bar">
+						<button aria-label="開啟 Backlog" className="mobile-menu" onClick={() => setSidebarOpen(true)} type="button">
+							<Icon name="menu" />
+						</button>
+						<h1>{formatSprintLabel(sprintStart)}</h1>
+						<SyncIndicator />
+						<ViewToggle onChange={setView} value={view} />
+						<button aria-label="新增項目" className="mobile-create" onClick={beginTargeting} title="新增項目 (N)" type="button">
+							<Icon name="add" />
+						</button>
+					</header>
 
-						<div className="workspace-body">
-							<section className="board-region">
+					<div className="workspace-body">
+						<section aria-label="Sprint 項目" className="sprint-pager" ref={pagerRef}>
+							<SprintPreviewPage categories={categories} sprintStart={previousSprintStart} tasks={previousTasksQuery.data?.tasks ?? []} view={view} />
+							<section aria-label={`${formatSprintLabel(sprintStart)} 項目`} className="sprint-page sprint-page--current">
 								{tasksQuery.isPending && !tasksQuery.data ? (
 									<div aria-busy="true" className="content-state">
 										<Spinner label="載入中" />
@@ -307,10 +313,10 @@ export function Workspace() {
 									/>
 								)}
 							</section>
-							<MiniCalendar onSelectSprint={selectSprint} sprintStart={sprintStart} tasks={tasks} />
-						</div>
-					</section>
-					<SprintPreviewPage categories={categories} sprintStart={nextSprintStart} tasks={nextTasksQuery.data?.tasks ?? []} view={view} />
+							<SprintPreviewPage categories={categories} sprintStart={nextSprintStart} tasks={nextTasksQuery.data?.tasks ?? []} view={view} />
+						</section>
+						<MiniCalendar onSelectSprint={selectSprint} sprintStart={sprintStart} tasks={tasks} />
+					</div>
 					<UtilityDock onHelp={() => setShortcutsOpen(true)} onTheme={toggleTheme} theme={theme} />
 				</main>
 			</div>

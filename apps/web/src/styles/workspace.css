@@ -236,19 +236,29 @@
 	flex: 1;
 	flex-direction: column;
 	height: 100dvh;
+	min-height: 0;
+	min-width: 0;
+	overflow: hidden;
+	position: relative;
+}
+
+.sprint-pager {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
 	min-width: 0;
 	overflow-y: auto;
 	overscroll-behavior-y: contain;
-	position: relative;
 	scroll-snap-type: y mandatory;
 	scrollbar-width: none;
 }
 
-.workspace::-webkit-scrollbar {
+.sprint-pager::-webkit-scrollbar {
 	display: none;
 }
 
-.workspace.is-resetting {
+.sprint-pager.is-resetting {
 	scroll-snap-type: none;
 }
 
@@ -256,7 +266,7 @@
 	display: flex;
 	flex: 0 0 100%;
 	flex-direction: column;
-	height: 100dvh;
+	height: 100%;
 	min-height: 0;
 	overflow: hidden;
 	scroll-snap-align: start;
@@ -267,17 +277,8 @@
 	pointer-events: none;
 }
 
-.sprint-page--preview .top-app-bar {
-	color: var(--md-sys-color-on-surface-variant);
-}
-
 .sprint-page--preview .task-card {
 	cursor: default;
-}
-
-.sprint-page--preview .mini-calendar button:disabled {
-	color: inherit;
-	opacity: 1;
 }
 
 .top-app-bar {
@@ -287,8 +288,7 @@
 	gap: var(--space-3);
 	min-height: 88px;
 	padding: var(--space-4) var(--space-5);
-	position: sticky;
-	top: 0;
+	position: relative;
 	z-index: 20;
 }
 
@@ -354,11 +354,6 @@
 	padding: var(--space-5);
 	padding-bottom: 88px;
 	width: 100%;
-}
-
-.board-region {
-	min-height: 0;
-	min-width: 0;
 }
 
 .task-board {
@@ -883,8 +878,7 @@
 	display: grid;
 	gap: var(--space-3);
 	padding: var(--space-3);
-	position: sticky;
-	top: 112px;
+	position: relative;
 }
 
 .mini-calendar header {
@@ -1104,7 +1098,7 @@
 
 	.workspace-body {
 		gap: var(--space-4);
-		min-height: auto;
+		min-height: 0;
 		padding: var(--space-3);
 		padding-bottom: 76px;
 	}

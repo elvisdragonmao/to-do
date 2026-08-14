@@ -2,41 +2,32 @@ import type { Category, Task } from "@em-todo/shared";
 
 import { formatShortDate, formatSprintLabel } from "../../date-format.js";
 import { Icon } from "../../icons.js";
-import { MiniCalendar } from "./MiniCalendar.js";
 import { STATUS_TARGETS, tasksForTarget, weekTargets, type ViewMode } from "./workspace-model.js";
 
 export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { categories: Category[]; sprintStart: string; tasks: Task[]; view: ViewMode }) {
 	const targets = view === "kanban" ? STATUS_TARGETS : weekTargets(sprintStart);
 
 	return (
-		<section aria-label={`${formatSprintLabel(sprintStart)} 預覽`} className="sprint-page sprint-page--preview">
-			<header className="top-app-bar top-app-bar--preview">
-				<h1>{formatSprintLabel(sprintStart)}</h1>
-			</header>
-			<div className="workspace-body">
-				<section className="board-region">
-					<div className={`task-board task-board--${view}`}>
-						{targets.map(target => {
-							const previewTasks = tasksForTarget(tasks, target);
-							return (
-								<section className="board-column" key={target.id}>
-									<header className="board-column__header">
-										<div>
-											<h2>{target.label}</h2>
-										</div>
-										<span className="count-badge">{previewTasks.length}</span>
-									</header>
-									<div className="board-column__tasks">
-										{previewTasks.map(task => (
-											<PreviewTaskCard category={categories.find(category => category.id === task.categoryId)} key={task.id} task={task} />
-										))}
-									</div>
-								</section>
-							);
-						})}
-					</div>
-				</section>
-				<MiniCalendar interactive={false} onSelectSprint={() => undefined} sprintStart={sprintStart} tasks={tasks} />
+		<section aria-label={`${formatSprintLabel(sprintStart)} 項目預覽`} className="sprint-page sprint-page--preview">
+			<div className={`task-board task-board--${view}`}>
+				{targets.map(target => {
+					const previewTasks = tasksForTarget(tasks, target);
+					return (
+						<section className="board-column" key={target.id}>
+							<header className="board-column__header">
+								<div>
+									<h2>{target.label}</h2>
+								</div>
+								<span className="count-badge">{previewTasks.length}</span>
+							</header>
+							<div className="board-column__tasks">
+								{previewTasks.map(task => (
+									<PreviewTaskCard category={categories.find(category => category.id === task.categoryId)} key={task.id} task={task} />
+								))}
+							</div>
+						</section>
+					);
+				})}
 			</div>
 		</section>
 	);
