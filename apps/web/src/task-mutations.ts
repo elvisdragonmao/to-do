@@ -1,4 +1,4 @@
-import { type CreateTaskInput, type SprintTasksResponse, type Task, type UpdateTaskInput, resolvePlacementHistory } from "@em-todo/shared";
+import { type CreateTaskInput, type SprintTasksResponse, type Task, type TaskListResponse, type UpdateTaskInput, resolvePlacementHistory } from "@em-todo/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { createTask, deleteTask, updateTask } from "./api.js";
@@ -31,6 +31,7 @@ export function useTaskMutations() {
 				sprintStart: input.sprintStart,
 				tasks: [...(old?.tasks ?? []), optimistic]
 			}));
+			if (optimistic.status !== "DONE") addToBacklog(client, optimistic);
 			return { snapshot };
 		},
 		onError: (error, _variables, context) => {
@@ -41,7 +42,8 @@ export function useTaskMutations() {
 			replaceTask(client, variables.optimisticId, task);
 			toast.show("項目已同步");
 		},
-		onSettled: (_data, _error, variables) => client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(variables.input.sprintStart) })
+		onSettled: (_data, _error, variables) =>
+			Promise.all([client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(variables.input.sprintStart) }), client.invalidateQueries({ queryKey: queryKeys.tasks.backlog })])
 	});
 
 	const update = useMutation({
@@ -95,7 +97,10 @@ export function useTaskMutations() {
 		},
 		onSuccess: task => replaceTask(client, task.id, task),
 		onSettled: (_data, _error, _variables, context) =>
-			Promise.all([...new Set([context?.oldSprint, context?.newSprint].filter(Boolean))].map(sprint => client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(sprint!) })))
+			Promise.all([
+				...[...new Set([context?.oldSprint, context?.newSprint].filter(Boolean))].map(sprint => client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(sprint!) })),
+				client.invalidateQueries({ queryKey: queryKeys.tasks.backlog })
+			])
 	});
 
 	const remove = useMutation({
@@ -113,7 +118,11 @@ export function useTaskMutations() {
 			toast.show(messageFrom(error), "error");
 		},
 		onSuccess: () => toast.show("項目已刪除"),
-		onSettled: (_data, _error, _variables, context) => (context?.sprintStart ? client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(context.sprintStart) }) : undefined)
+		onSettled: (_data, _error, _variables, context) =>
+			Promise.all([
+				...(context?.sprintStart ? [client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(context.sprintStart) })] : []),
+				client.invalidateQueries({ queryKey: queryKeys.tasks.backlog })
+			])
 	});
 
 	return { create, update, remove };
@@ -135,13 +144,20 @@ function findTask(snapshot: TaskCacheSnapshot, id: string): Task | undefined {
 }
 
 function removeTask(client: ReturnType<typeof useQueryClient>, id: string) {
-	client.setQueriesData<SprintTasksResponse>({ queryKey: queryKeys.tasks.all }, old => (old ? { ...old, tasks: old.tasks.filter(task => task.id !== id) } : old));
+	client.setQueriesData<TaskListResponse>({ queryKey: queryKeys.tasks.all }, old => (old ? { ...old, tasks: old.tasks.filter(task => task.id !== id) } : old));
 }
 
 function replaceTask(client: ReturnType<typeof useQueryClient>, id: string, task: Task) {
 	removeTask(client, id);
 	client.setQueryData<SprintTasksResponse>(queryKeys.tasks.sprint(task.sprintStart), old => ({
 		sprintStart: task.sprintStart,
+		tasks: [...(old?.tasks ?? []).filter(candidate => candidate.id !== task.id), task]
+	}));
+	if (task.status !== "DONE") addToBacklog(client, task);
+}
+
+function addToBacklog(client: ReturnType<typeof useQueryClient>, task: Task) {
+	client.setQueryData<TaskListResponse>(queryKeys.tasks.backlog, old => ({
 		tasks: [...(old?.tasks ?? []).filter(candidate => candidate.id !== task.id), task]
 	}));
 }

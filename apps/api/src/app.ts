@@ -8,6 +8,7 @@ import {
 	loginRequestSchema,
 	sessionSchema,
 	sprintTasksResponseSchema,
+	taskListResponseSchema,
 	taskSchema,
 	updateCategorySchema,
 	updateTaskSchema
@@ -113,6 +114,12 @@ export async function createApp(options: AppOptions): Promise<FastifyInstance> {
 			tasks: database.listTasks(sprintStart)
 		});
 	});
+
+	app.get("/api/tasks/backlog", async () =>
+		taskListResponseSchema.parse({
+			tasks: database.listBacklogTasks()
+		})
+	);
 
 	app.post("/api/tasks", async (request, reply) => {
 		const task = database.createTask(parse(createTaskSchema, request.body));

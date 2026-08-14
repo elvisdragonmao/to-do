@@ -4,6 +4,7 @@ import {
 	type CreateTaskInput,
 	type SprintTasksResponse,
 	type Task,
+	type TaskListResponse,
 	type UpdateCategoryInput,
 	type UpdateTaskInput,
 	apiErrorSchema,
@@ -11,6 +12,7 @@ import {
 	categorySchema,
 	sessionSchema,
 	sprintTasksResponseSchema,
+	taskListResponseSchema,
 	taskSchema
 } from "@em-todo/shared";
 import type { ZodType } from "zod";
@@ -64,6 +66,10 @@ export async function updateCategory(categoryId: string, input: UpdateCategoryIn
 
 export async function getSprintTasks(sprintStart: string, signal?: AbortSignal): Promise<SprintTasksResponse> {
 	return request(`/api/tasks?sprintStart=${encodeURIComponent(sprintStart)}`, sprintTasksResponseSchema, { signal });
+}
+
+export async function getBacklogTasks(signal?: AbortSignal): Promise<TaskListResponse> {
+	return request("/api/tasks/backlog", taskListResponseSchema, { signal });
 }
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {

@@ -114,6 +114,11 @@ export class TodoDatabase {
 		return rows.map(mapTask);
 	}
 
+	listBacklogTasks(): Task[] {
+		const rows = this.db.prepare("SELECT * FROM tasks WHERE status <> 'DONE' ORDER BY category_id, last_planned_date, sort_order, created_at").all() as TaskRow[];
+		return rows.map(mapTask);
+	}
+
 	getTask(id: string): Task | null {
 		const row = this.db.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as TaskRow | undefined;
 		return row ? mapTask(row) : null;
@@ -287,6 +292,8 @@ export class TodoDatabase {
 
       CREATE INDEX IF NOT EXISTS tasks_sprint_position
         ON tasks (sprint_start, scheduled_date, status, sort_order);
+      CREATE INDEX IF NOT EXISTS tasks_backlog
+        ON tasks (status, category_id, last_planned_date, sort_order);
       CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions (expires_at);
     `);
 

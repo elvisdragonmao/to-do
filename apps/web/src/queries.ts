@@ -1,14 +1,15 @@
-import type { SprintTasksResponse } from "@em-todo/shared";
+import type { TaskListResponse } from "@em-todo/shared";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { QueryClient, queryOptions } from "@tanstack/react-query";
 
-import { createTask, deleteTask, getCategories, getSprintTasks, updateTask } from "./api.js";
+import { createTask, deleteTask, getBacklogTasks, getCategories, getSprintTasks, updateTask } from "./api.js";
 
 export const queryKeys = {
 	session: ["session"] as const,
 	categories: ["categories"] as const,
 	tasks: {
 		all: ["tasks"] as const,
+		backlog: ["tasks", "backlog"] as const,
 		sprint: (sprintStart: string) => ["tasks", "sprint", sprintStart] as const
 	}
 };
@@ -32,6 +33,13 @@ export const sprintTasksQuery = (sprintStart: string) =>
 	queryOptions({
 		queryKey: queryKeys.tasks.sprint(sprintStart),
 		queryFn: ({ signal }) => getSprintTasks(sprintStart, signal),
+		staleTime: 30 * 1000
+	});
+
+export const backlogTasksQuery = () =>
+	queryOptions({
+		queryKey: queryKeys.tasks.backlog,
+		queryFn: ({ signal }) => getBacklogTasks(signal),
 		staleTime: 30 * 1000
 	});
 
@@ -81,4 +89,4 @@ export const persistOptions = {
 	}
 };
 
-export type TaskCacheSnapshot = [readonly unknown[], SprintTasksResponse | undefined][];
+export type TaskCacheSnapshot = [readonly unknown[], TaskListResponse | undefined][];

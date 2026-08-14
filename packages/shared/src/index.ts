@@ -123,6 +123,10 @@ export const sprintTasksResponseSchema = z.object({
 	tasks: z.array(taskSchema)
 });
 
+export const taskListResponseSchema = z.object({
+	tasks: z.array(taskSchema)
+});
+
 export const categoriesResponseSchema = z.object({
 	categories: z.array(categorySchema)
 });
@@ -133,6 +137,7 @@ export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type SprintTasksResponse = z.infer<typeof sprintTasksResponseSchema>;
 export type Task = z.infer<typeof taskSchema>;
+export type TaskListResponse = z.infer<typeof taskListResponseSchema>;
 export type TaskStatus = z.infer<typeof taskStatusSchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;

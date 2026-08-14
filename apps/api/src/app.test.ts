@@ -126,6 +126,49 @@ describe("EM's To Do API", () => {
 		expect(updated.json()).toMatchObject({ name: "Study", color: "#DC5002" });
 	});
 
+	it("returns unfinished backlog tasks across every sprint", async () => {
+		const categories = await app.inject({
+			method: "GET",
+			url: "/api/categories",
+			headers: { cookie }
+		});
+		const categoryId = categories.json().categories[0].id as string;
+		const firstSprint = startOfSprint("2026-08-10");
+		const secondSprint = addDays(firstSprint, 7);
+		const create = (title: string, sprintStart: string, status: "TODO" | "DOING" | "DONE") =>
+			app.inject({
+				method: "POST",
+				url: "/api/tasks",
+				headers: { cookie, "x-em-todo-request": "web" },
+				payload: {
+					title,
+					description: "",
+					sprintStart,
+					scheduledDate: null,
+					categoryId,
+					urgency: 2,
+					estimatedHours: null,
+					dueDate: null,
+					status
+				}
+			});
+
+		await Promise.all([create("First sprint", firstSprint, "TODO"), create("Second sprint", secondSprint, "DOING"), create("Completed", secondSprint, "DONE")]);
+		const backlog = await app.inject({
+			method: "GET",
+			url: "/api/tasks/backlog",
+			headers: { cookie }
+		});
+
+		expect(backlog.statusCode).toBe(200);
+		expect(
+			backlog
+				.json()
+				.tasks.map((task: { title: string }) => task.title)
+				.toSorted()
+		).toEqual(["First sprint", "Second sprint"]);
+	});
+
 	it("returns a conflict for duplicate category names", async () => {
 		const request = () =>
 			app.inject({
