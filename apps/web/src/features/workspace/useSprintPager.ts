@@ -1,45 +1,49 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 
-export type SprintPagerDirection = -1 | 0 | 1;
-
 export function useSprintPager(
 	ref: RefObject<HTMLElement | null>,
 	sprintStart: string,
-	onPrevious: () => void,
-	onNext: () => void,
-	onPreview?: (direction: SprintPagerDirection) => void,
+	onNavigate: (sprintStart: string) => void,
+	onPreview?: (sprintStart: string) => void,
 	locked = false
 ): (direction: -1 | 1) => void {
 	const resetting = useRef(true);
 	const navigating = useRef(false);
 	const ignoreUntil = useRef(0);
-	const previewDirection = useRef<SprintPagerDirection>(0);
-	const snapTargetDirection = useRef<SprintPagerDirection | null>(null);
-	const setPreviewDirection = useCallback(
-		(direction: SprintPagerDirection) => {
-			if (previewDirection.current === direction) return;
-			previewDirection.current = direction;
-			onPreview?.(direction);
+	const previewSprint = useRef(sprintStart);
+	const snapTargetSprint = useRef<string | null>(null);
+	const setPreviewSprint = useCallback(
+		(nextSprint: string) => {
+			if (previewSprint.current === nextSprint) return;
+			previewSprint.current = nextSprint;
+			onPreview?.(nextSprint);
 		},
 		[onPreview]
 	);
-
-	useLayoutEffect(() => {
+	const resetToCurrentPage = useCallback(() => {
 		const element = ref.current;
 		if (!element) return;
+		const currentPage = sprintPages(element).find(page => page.dataset.sprintStart === sprintStart);
+		if (!currentPage) return;
 		resetting.current = true;
 		navigating.current = false;
-		snapTargetDirection.current = null;
+		snapTargetSprint.current = null;
 		ignoreUntil.current = performance.now() + 350;
-		setPreviewDirection(0);
+		setPreviewSprint(sprintStart);
 		element.classList.add("is-resetting");
-		element.scrollTop = pageOffsets(element)[1] ?? element.clientHeight;
-		const frame = requestAnimationFrame(() => {
+		element.scrollTop = currentPage.offsetTop;
+		return requestAnimationFrame(() => {
 			element.classList.remove("is-resetting");
 			resetting.current = false;
 		});
-		return () => cancelAnimationFrame(frame);
-	}, [ref, setPreviewDirection, sprintStart]);
+	}, [ref, setPreviewSprint, sprintStart]);
+
+	useLayoutEffect(() => {
+		const frame = resetToCurrentPage();
+		return () => {
+			if (frame !== undefined) cancelAnimationFrame(frame);
+		};
+	}, [resetToCurrentPage]);
 
 	useEffect(() => {
 		const element = ref.current;
@@ -50,24 +54,15 @@ export function useSprintPager(
 			const nextHeight = element.clientHeight;
 			if (!nextHeight || nextHeight === previousHeight || navigating.current) return;
 			previousHeight = nextHeight;
-			resetting.current = true;
-			snapTargetDirection.current = null;
-			ignoreUntil.current = performance.now() + 350;
-			setPreviewDirection(0);
-			element.classList.add("is-resetting");
-			element.scrollTop = pageOffsets(element)[1] ?? nextHeight;
 			cancelAnimationFrame(frame);
-			frame = requestAnimationFrame(() => {
-				element.classList.remove("is-resetting");
-				resetting.current = false;
-			});
+			frame = resetToCurrentPage() ?? 0;
 		});
 		observer.observe(element);
 		return () => {
 			cancelAnimationFrame(frame);
 			observer.disconnect();
 		};
-	}, [ref, setPreviewDirection]);
+	}, [ref, resetToCurrentPage]);
 
 	useEffect(() => {
 		const element = ref.current;
@@ -75,11 +70,14 @@ export function useSprintPager(
 		let settleTimer = 0;
 		let previewFrame = 0;
 
-		const previewPage = (index: number) => setPreviewDirection(pageDirection(index));
+		const previewPage = (page: HTMLElement | undefined) => {
+			const nextSprint = page?.dataset.sprintStart;
+			if (nextSprint) setPreviewSprint(nextSprint);
+		};
 		const previewNearestPage = () => {
 			previewFrame = 0;
-			if (locked || resetting.current || snapTargetDirection.current !== null) return;
-			previewPage(nearestPageIndex(element));
+			if (locked || resetting.current || snapTargetSprint.current !== null) return;
+			previewPage(nearestPage(element));
 		};
 		const settle = () => {
 			if (locked || resetting.current || navigating.current) return;
@@ -89,18 +87,16 @@ export function useSprintPager(
 				settleTimer = window.setTimeout(settle, ignoreFor + 20);
 				return;
 			}
-			const offsets = pageOffsets(element);
-			if (offsets.length < 3) return;
-			const page = nearestPageIndex(element, offsets);
-			const snappedOffset = offsets[page];
-			if (snappedOffset === undefined) return;
-			const snapped = Math.abs(element.scrollTop - snappedOffset) <= Math.max(3, element.clientHeight * 0.04);
+			const page = nearestPage(element);
+			if (!page) return;
+			const snapped = Math.abs(element.scrollTop - page.offsetTop) <= Math.max(3, element.clientHeight * 0.04);
 			if (!snapped) return;
-			snapTargetDirection.current = null;
+			snapTargetSprint.current = null;
 			previewPage(page);
-			if (page === 1) return;
+			const nextSprint = page.dataset.sprintStart;
+			if (!nextSprint || nextSprint === sprintStart) return;
 			navigating.current = true;
-			page < 1 ? onPrevious() : onNext();
+			onNavigate(nextSprint);
 		};
 
 		const onScroll = () => {
@@ -112,11 +108,11 @@ export function useSprintPager(
 		const onSnapChanging = (event: Event) => {
 			if (locked || resetting.current) return;
 			const target = (event as Event & { snapTargetBlock?: Element | null }).snapTargetBlock;
-			const page = target ? sprintPages(element).indexOf(target as HTMLElement) : -1;
-			if (page >= 0) {
-				snapTargetDirection.current = pageDirection(page);
-				previewPage(page);
-			}
+			if (!(target instanceof HTMLElement) || !target.classList.contains("sprint-page")) return;
+			const targetSprint = target.dataset.sprintStart;
+			if (!targetSprint) return;
+			snapTargetSprint.current = targetSprint;
+			setPreviewSprint(targetSprint);
 		};
 
 		element.addEventListener("scroll", onScroll, { passive: true });
@@ -129,21 +125,23 @@ export function useSprintPager(
 			element.removeEventListener("scrollend", settle);
 			element.removeEventListener("scrollsnapchanging", onSnapChanging);
 		};
-	}, [locked, onNext, onPrevious, ref, setPreviewDirection]);
+	}, [locked, onNavigate, ref, setPreviewSprint, sprintStart]);
 
 	return useCallback(
 		(direction: -1 | 1) => {
 			const element = ref.current;
 			if (!element || locked || navigating.current) return;
-			const offsets = pageOffsets(element);
-			const target = offsets[direction + 1];
-			if (target === undefined) return;
-			snapTargetDirection.current = direction;
-			setPreviewDirection(direction);
+			const pages = sprintPages(element);
+			const currentPageIndex = pages.findIndex(page => page.dataset.sprintStart === sprintStart);
+			const targetPage = pages[currentPageIndex + direction];
+			const targetSprint = targetPage?.dataset.sprintStart;
+			if (!targetPage || !targetSprint) return;
+			snapTargetSprint.current = targetSprint;
+			setPreviewSprint(targetSprint);
 			const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-			element.scrollTo({ behavior: reducedMotion ? "auto" : "smooth", top: target });
+			element.scrollTo({ behavior: reducedMotion ? "auto" : "smooth", top: targetPage.offsetTop });
 		},
-		[locked, ref, setPreviewDirection]
+		[locked, ref, setPreviewSprint, sprintStart]
 	);
 }
 
@@ -151,20 +149,12 @@ function sprintPages(element: HTMLElement): HTMLElement[] {
 	return Array.from(element.children).filter((child): child is HTMLElement => child instanceof HTMLElement && child.classList.contains("sprint-page"));
 }
 
-function pageOffsets(element: HTMLElement): number[] {
-	return sprintPages(element).map(page => page.offsetTop);
-}
-
-function nearestPageIndex(element: HTMLElement, offsets = pageOffsets(element)): number {
-	let nearest = 0;
-	for (let index = 1; index < offsets.length; index += 1) {
-		const candidate = offsets[index];
-		const current = offsets[nearest];
-		if (candidate !== undefined && current !== undefined && Math.abs(element.scrollTop - candidate) < Math.abs(element.scrollTop - current)) nearest = index;
+function nearestPage(element: HTMLElement): HTMLElement | undefined {
+	const pages = sprintPages(element);
+	let nearest = pages[0];
+	for (let index = 1; index < pages.length; index += 1) {
+		const candidate = pages[index];
+		if (candidate && nearest && Math.abs(element.scrollTop - candidate.offsetTop) < Math.abs(element.scrollTop - nearest.offsetTop)) nearest = candidate;
 	}
 	return nearest;
-}
-
-function pageDirection(page: number): SprintPagerDirection {
-	return Math.max(-1, Math.min(1, page - 1)) as SprintPagerDirection;
 }

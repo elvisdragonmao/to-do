@@ -1,4 +1,4 @@
-import { isoDateSchema, startOfSprint, type CreateTaskInput, type Task, type UpdateTaskInput } from "@em-todo/shared";
+import { addDays, isoDateSchema, startOfSprint, type CreateTaskInput, type Task, type UpdateTaskInput } from "@em-todo/shared";
 import {
 	closestCenter,
 	DndContext,
@@ -13,7 +13,7 @@ import {
 	type DragOverEvent,
 	type DragStartEvent
 } from "@dnd-kit/core";
-import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useMutationState, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
@@ -35,13 +35,16 @@ import { TaskBoard, type DropProjection } from "./TaskBoard.js";
 import { TaskCardPreview, type SyncState } from "./TaskCard.js";
 import { WorkspaceSidebar } from "./WorkspaceSidebar.js";
 import { findDirectionalTask, useWorkspaceKeyboard } from "./useWorkspaceKeyboard.js";
-import { useSprintPager, type SprintPagerDirection } from "./useSprintPager.js";
+import { useSprintPager } from "./useSprintPager.js";
 import { adjacentSprint, createInputForTarget, numberedTargets, sortOrderBefore, tasksForTarget, updateForTarget, type PlacementTarget, type ViewMode } from "./workspace-model.js";
 
 const collisionDetection: CollisionDetection = args => {
 	const pointerCollisions = pointerWithin(args);
 	return pointerCollisions.length > 0 ? pointerCollisions : closestCenter(args);
 };
+
+const PAGER_RADIUS = 12;
+const PAGER_QUERY_RADIUS = 2;
 
 export function Workspace() {
 	const { sprintStart: rawSprintStart = "" } = useParams();
@@ -50,9 +53,17 @@ export function Workspace() {
 	const nextSprintStart = adjacentSprint(sprintStart, 1);
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
+	const pagerSprints = useMemo(() => Array.from({ length: PAGER_RADIUS * 2 + 1 }, (_, index) => addDays(sprintStart, (index - PAGER_RADIUS) * 7)), [sprintStart]);
+	const [previewSprintStart, setPreviewSprintStart] = useState(sprintStart);
+	const visibleSprintStart = pagerSprints.includes(previewSprintStart) ? previewSprintStart : sprintStart;
+	const visibleSprintIndex = pagerSprints.indexOf(visibleSprintStart);
 	const tasksQuery = useQuery(sprintTasksQuery(sprintStart));
-	const previousTasksQuery = useQuery(sprintTasksQuery(previousSprintStart));
-	const nextTasksQuery = useQuery(sprintTasksQuery(nextSprintStart));
+	const pageTaskQueries = useQueries({
+		queries: pagerSprints.map((pageSprintStart, index) => ({
+			...sprintTasksQuery(pageSprintStart),
+			enabled: pageSprintStart !== sprintStart && Math.abs(index - visibleSprintIndex) <= PAGER_QUERY_RADIUS
+		}))
+	});
 	const backlogQuery = useQuery(backlogTasksQuery());
 	const categoriesResult = useQuery(categoriesQuery());
 	const taskMutations = useTaskMutations();
@@ -69,15 +80,13 @@ export function Workspace() {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [categoriesOpen, setCategoriesOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
-	const [calendarDirection, setCalendarDirection] = useState<SprintPagerDirection>(0);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const pagerRef = useRef<HTMLElement>(null);
 	const pendingFocusTaskRef = useRef<string | null>(null);
 	const tasks = tasksQuery.data?.tasks ?? [];
 	const backlogTasks = backlogQuery.data?.tasks ?? [];
 	const categories = categoriesResult.data ?? [];
-	const calendarSprintStart = calendarDirection === 0 ? sprintStart : adjacentSprint(sprintStart, calendarDirection);
-	const calendarTasks = calendarDirection < 0 ? (previousTasksQuery.data?.tasks ?? []) : calendarDirection > 0 ? (nextTasksQuery.data?.tasks ?? []) : tasks;
+	const visibleSprintTasks = visibleSprintStart === sprintStart ? tasks : (pageTaskQueries[visibleSprintIndex]?.data?.tasks ?? []);
 	const uncategorized = categories.find(category => category.isDefault)?.id ?? categories[0]?.id ?? "uncategorized";
 	const numbered = useMemo(() => numberedTargets(view, sprintStart, categories), [categories, sprintStart, view]);
 	const syncStates = useSyncStates();
@@ -107,17 +116,14 @@ export function Workspace() {
 		setTargeting(false);
 	}, []);
 	const goToSprint = useCallback((next: string) => navigate(`/app/sprint/${next}`), [navigate]);
-	const goPreviousSprint = useCallback(() => goToSprint(previousSprintStart), [goToSprint, previousSprintStart]);
-	const goNextSprint = useCallback(() => goToSprint(nextSprintStart), [goToSprint, nextSprintStart]);
 	const dragging = activeTask !== null;
-	const goRelative = useSprintPager(pagerRef, sprintStart, goPreviousSprint, goNextSprint, setCalendarDirection, dragging);
+	const goRelative = useSprintPager(pagerRef, sprintStart, goToSprint, setPreviewSprintStart, dragging);
 	const forwardChromeWheel = useCallback(
 		(event: ReactWheelEvent<HTMLElement>) => {
 			const pager = pagerRef.current;
 			if (dragging || !pager || pager.contains(event.target as Node) || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
 			const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 32 : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? pager.clientHeight : 1;
-			const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-			pager.scrollBy({ behavior: reducedMotion ? "auto" : "smooth", top: event.deltaY * scale });
+			pager.scrollBy({ behavior: "auto", top: event.deltaY * scale });
 		},
 		[dragging]
 	);
@@ -306,7 +312,7 @@ export function Workspace() {
 						<button aria-label="開啟 Backlog" className="mobile-menu" onClick={() => setSidebarOpen(true)} type="button">
 							<Icon name="menu" />
 						</button>
-						<h1>{formatSprintLabel(sprintStart)}</h1>
+						<h1>{formatSprintLabel(visibleSprintStart)}</h1>
 						<SyncIndicator />
 						<ViewToggle onChange={setView} value={view} />
 						<button aria-label="新增項目" className="mobile-create" onClick={beginTargeting} title="新增項目 (N)" type="button">
@@ -316,44 +322,48 @@ export function Workspace() {
 
 					<div className="workspace-body">
 						<section aria-label="Sprint 項目" className={`sprint-pager${dragging ? " is-dragging" : ""}`} ref={pagerRef}>
-							<SprintPreviewPage categories={categories} sprintStart={previousSprintStart} tasks={previousTasksQuery.data?.tasks ?? []} view={view} />
-							<section aria-label={`${formatSprintLabel(sprintStart)} 項目`} className="sprint-page sprint-page--current">
-								{tasksQuery.isPending && !tasksQuery.data ? (
-									<div aria-busy="true" className="content-state">
-										<Spinner label="載入中" />
-									</div>
-								) : tasksQuery.isError && !tasksQuery.data ? (
-									<div className="content-state" role="alert">
-										<p>{tasksQuery.error.message}</p>
-										<button className="button button--filled-tonal" onClick={() => tasksQuery.refetch()} type="button">
-											重試
-										</button>
-									</div>
+							{pagerSprints.map((pageSprintStart, index) =>
+								pageSprintStart === sprintStart ? (
+									<section aria-label={`${formatSprintLabel(sprintStart)} 項目`} className="sprint-page sprint-page--current" data-sprint-start={sprintStart} key={pageSprintStart}>
+										{tasksQuery.isPending && !tasksQuery.data ? (
+											<div aria-busy="true" className="content-state">
+												<Spinner label="載入中" />
+											</div>
+										) : tasksQuery.isError && !tasksQuery.data ? (
+											<div className="content-state" role="alert">
+												<p>{tasksQuery.error.message}</p>
+												<button className="button button--filled-tonal" onClick={() => tasksQuery.refetch()} type="button">
+													重試
+												</button>
+											</div>
+										) : (
+											<TaskBoard
+												activeTarget={activeTarget}
+												categories={categories}
+												numbered={numbered}
+												onCancelCreate={cancelCreate}
+												onCreate={createTask}
+												onDelete={taskId => taskMutations.remove.mutate({ taskId })}
+												onSelect={taskId => selectTask(taskId)}
+												onStartCreate={startCreate}
+												onUpdate={updateTask}
+												projection={projection}
+												searchMatches={searchMatches}
+												selectedTaskId={selectedTaskId}
+												sprintStart={sprintStart}
+												syncStates={syncStates}
+												targeting={targeting}
+												tasks={tasks}
+												view={view}
+											/>
+										)}
+									</section>
 								) : (
-									<TaskBoard
-										activeTarget={activeTarget}
-										categories={categories}
-										numbered={numbered}
-										onCancelCreate={cancelCreate}
-										onCreate={createTask}
-										onDelete={taskId => taskMutations.remove.mutate({ taskId })}
-										onSelect={taskId => selectTask(taskId)}
-										onStartCreate={startCreate}
-										onUpdate={updateTask}
-										projection={projection}
-										searchMatches={searchMatches}
-										selectedTaskId={selectedTaskId}
-										sprintStart={sprintStart}
-										syncStates={syncStates}
-										targeting={targeting}
-										tasks={tasks}
-										view={view}
-									/>
-								)}
-							</section>
-							<SprintPreviewPage categories={categories} sprintStart={nextSprintStart} tasks={nextTasksQuery.data?.tasks ?? []} view={view} />
+									<SprintPreviewPage categories={categories} key={pageSprintStart} sprintStart={pageSprintStart} tasks={pageTaskQueries[index]?.data?.tasks ?? []} view={view} />
+								)
+							)}
 						</section>
-						<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={calendarSprintStart} tasks={calendarTasks} />
+						<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={visibleSprintStart} tasks={visibleSprintTasks} />
 					</div>
 					<UtilityDock onHelp={() => setShortcutsOpen(true)} onTheme={toggleTheme} theme={theme} />
 				</main>

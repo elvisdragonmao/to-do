@@ -1,6 +1,6 @@
 import type { Category, Task } from "@em-todo/shared";
 
-import { formatShortDate, formatSprintLabel } from "../../date-format.js";
+import { formatShortDate } from "../../date-format.js";
 import { Icon } from "../../icons.js";
 import { STATUS_TARGETS, tasksForTarget, weekTargets, type ViewMode } from "./workspace-model.js";
 
@@ -8,7 +8,7 @@ export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { ca
 	const targets = view === "kanban" ? STATUS_TARGETS : weekTargets(sprintStart);
 
 	return (
-		<section aria-label={`${formatSprintLabel(sprintStart)} 項目預覽`} className="sprint-page sprint-page--preview">
+		<section aria-hidden="true" className="sprint-page sprint-page--preview" data-sprint-start={sprintStart}>
 			<div className={`task-board task-board--${view}`}>
 				{targets.map(target => {
 					const previewTasks = tasksForTarget(tasks, target);
@@ -19,11 +19,20 @@ export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { ca
 									<h2>{target.label}</h2>
 								</div>
 								<span className="count-badge">{previewTasks.length}</span>
+								<span aria-hidden="true" className="column-add">
+									<Icon name="add" />
+								</span>
 							</header>
 							<div className="board-column__tasks">
 								{previewTasks.map(task => (
 									<PreviewTaskCard category={categories.find(category => category.id === task.categoryId)} key={task.id} task={task} />
 								))}
+								{previewTasks.length === 0 ? (
+									<div aria-hidden="true" className="empty-column">
+										<Icon name="add" />
+										新增
+									</div>
+								) : null}
 							</div>
 						</section>
 					);
