@@ -16,7 +16,6 @@ type TaskBoardProps = {
 	numbered: NumberedTarget[];
 	onCancelCreate: () => void;
 	onCreate: (target: PlacementTarget, values: QuickCreateValues) => void;
-	onDelete: (taskId: string) => void;
 	onSelect: (taskId: string) => void;
 	onStartCreate: (target: PlacementTarget) => void;
 	onUpdate: (taskId: string, input: UpdateTaskInput) => void;
@@ -47,7 +46,6 @@ function BoardColumn({
 	numbered,
 	onCancelCreate,
 	onCreate,
-	onDelete,
 	onSelect,
 	onStartCreate,
 	onUpdate,
@@ -89,7 +87,6 @@ function BoardColumn({
 							categories={categories}
 							category={categories.find(category => category.id === task.categoryId)}
 							containerId={target.id}
-							onDelete={onDelete}
 							onSelect={onSelect}
 							onUpdate={onUpdate}
 							searchMatch={searchMatches?.has(task.id)}

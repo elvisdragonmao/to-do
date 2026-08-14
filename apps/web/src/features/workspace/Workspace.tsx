@@ -33,6 +33,7 @@ import type { QuickCreateValues } from "./QuickCreate.js";
 import { SprintPreviewPage } from "./SprintPreviewPage.js";
 import { TaskBoard, type DropProjection } from "./TaskBoard.js";
 import { TaskCardPreview, type SyncState } from "./TaskCard.js";
+import { TASK_TRASH_ID, TaskTrash } from "./TaskTrash.js";
 import { WorkspaceSidebar } from "./WorkspaceSidebar.js";
 import { findDirectionalTask, useWorkspaceKeyboard } from "./useWorkspaceKeyboard.js";
 import { useSprintPager } from "./useSprintPager.js";
@@ -77,6 +78,7 @@ export function Workspace() {
 	const [activeTarget, setActiveTarget] = useState<PlacementTarget | null>(null);
 	const [activeTask, setActiveTask] = useState<Task | null>(null);
 	const [projection, setProjection] = useState<DropProjection>(null);
+	const [trashTargeted, setTrashTargeted] = useState(false);
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [categoriesOpen, setCategoriesOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -249,19 +251,30 @@ export function Workspace() {
 	}, [beginTargeting, searchParams, setSearchParams]);
 
 	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
-	const handleDragOver = useCallback((event: DragOverEvent) => setProjection(projectionFromOver(event)), []);
+	const handleDragOver = useCallback((event: DragOverEvent) => {
+		const overTrash = event.over?.id === TASK_TRASH_ID;
+		setTrashTargeted(overTrash);
+		setProjection(overTrash ? null : projectionFromOver(event));
+	}, []);
 	const handleDragStart = useCallback((event: DragStartEvent) => {
 		const pager = pagerRef.current;
 		const currentPage = pager?.querySelector<HTMLElement>(".sprint-page--current");
 		if (pager && currentPage) pager.scrollTop = currentPage.offsetTop;
 		setProjection(null);
+		setTrashTargeted(false);
 		setActiveTask(event.active.data.current?.task as Task);
 	}, []);
 	const handleDragEnd = (event: DragEndEvent) => {
 		const task = event.active.data.current?.task as Task | undefined;
+		const overTrash = event.over?.id === TASK_TRASH_ID;
 		const next = projectionFromOver(event);
 		setActiveTask(null);
 		setProjection(null);
+		setTrashTargeted(false);
+		if (task && overTrash) {
+			taskMutations.remove.mutate({ taskId: task.id });
+			return;
+		}
 		if (!task || !next) return;
 		const destination = tasksForTarget(
 			(next.target.kind === "day" && next.target.sprintStart !== sprintStart ? backlogTasks : tasks).filter(candidate => candidate.id !== task.id),
@@ -280,6 +293,7 @@ export function Workspace() {
 			onDragCancel={() => {
 				setActiveTask(null);
 				setProjection(null);
+				setTrashTargeted(false);
 			}}
 			onDragEnd={handleDragEnd}
 			onDragOver={handleDragOver}
@@ -343,7 +357,6 @@ export function Workspace() {
 												numbered={numbered}
 												onCancelCreate={cancelCreate}
 												onCreate={createTask}
-												onDelete={taskId => taskMutations.remove.mutate({ taskId })}
 												onSelect={taskId => selectTask(taskId)}
 												onStartCreate={startCreate}
 												onUpdate={updateTask}
@@ -363,7 +376,10 @@ export function Workspace() {
 								)
 							)}
 						</section>
-						<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={visibleSprintStart} tasks={visibleSprintTasks} />
+						<div className={`workspace-rail${dragging ? " is-dragging" : ""}`}>
+							<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={visibleSprintStart} tasks={visibleSprintTasks} />
+							<TaskTrash active={dragging} />
+						</div>
 					</div>
 					<UtilityDock onHelp={() => setShortcutsOpen(true)} onTheme={toggleTheme} theme={theme} />
 				</main>
@@ -373,7 +389,11 @@ export function Workspace() {
 			<ShortcutDialog onClose={() => setShortcutsOpen(false)} open={shortcutsOpen} />
 			<DragOverlay dropAnimation={{ duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
 				{activeTask ? (
-					<TaskCardPreview calendarTargeted={projection?.target.id.startsWith("calendar:")} category={categories.find(category => category.id === activeTask.categoryId)} task={activeTask} />
+					<TaskCardPreview
+						category={categories.find(category => category.id === activeTask.categoryId)}
+						railTargeted={trashTargeted || Boolean(projection?.target.id.startsWith("calendar:"))}
+						task={activeTask}
+					/>
 				) : null}
 			</DragOverlay>
 		</DndContext>

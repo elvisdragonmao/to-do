@@ -13,7 +13,6 @@ type TaskCardProps = {
 	category: Category | undefined;
 	containerId: string;
 	onSelect: (taskId: string) => void;
-	onDelete: (taskId: string) => void;
 	onUpdate: (taskId: string, input: UpdateTaskInput) => void;
 	searchMatch: boolean | undefined;
 	selected: boolean;
@@ -22,7 +21,7 @@ type TaskCardProps = {
 	task: Task;
 };
 
-export const TaskCard = memo(function TaskCard({ categories, category, containerId, onDelete, onSelect, onUpdate, searchMatch, selected, showStatus, syncState, task }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({ categories, category, containerId, onSelect, onUpdate, searchMatch, selected, showStatus, syncState, task }: TaskCardProps) {
 	const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
 		id: task.id,
 		data: { type: "task", task, containerId },
@@ -46,12 +45,7 @@ export const TaskCard = memo(function TaskCard({ categories, category, container
 			tabIndex={0}
 		>
 			<TaskTextEditor
-				actions={
-					<>
-						<UrgencyButton disabled={Boolean(syncState)} onChange={() => update("urgency", task.urgency === 4 ? 1 : task.urgency + 1)} urgency={task.urgency} />
-						<DeleteButton disabled={Boolean(syncState)} onDelete={() => onDelete(task.id)} />
-					</>
-				}
+				actions={<UrgencyButton disabled={Boolean(syncState)} onChange={() => update("urgency", task.urgency === 4 ? 1 : task.urgency + 1)} urgency={task.urgency} />}
 				description={task.description}
 				disabled={Boolean(syncState)}
 				onCommit={input => onUpdate(task.id, { version: task.version, ...input })}
@@ -117,37 +111,9 @@ function UrgencyButton({ disabled, onChange, urgency }: { disabled: boolean; onC
 	);
 }
 
-function DeleteButton({ disabled, onDelete }: { disabled: boolean; onDelete: () => void }) {
-	const [armed, setArmed] = useState(false);
-
-	useEffect(() => {
-		if (!armed) return;
-		const timeout = window.setTimeout(() => setArmed(false), 3000);
-		return () => window.clearTimeout(timeout);
-	}, [armed]);
-
+export function TaskCardPreview({ category, railTargeted = false, task }: { category: Category | undefined; railTargeted?: boolean; task: Task }) {
 	return (
-		<button
-			aria-label={armed ? "確認刪除項目" : "刪除項目"}
-			className={`task-card__delete${armed ? " is-armed" : ""}`}
-			disabled={disabled}
-			onClick={event => {
-				event.stopPropagation();
-				if (armed) onDelete();
-				else setArmed(true);
-			}}
-			onPointerDown={event => event.stopPropagation()}
-			title={armed ? "再按一次確認刪除" : "刪除項目"}
-			type="button"
-		>
-			<Icon name={armed ? "check" : "trash"} />
-		</button>
-	);
-}
-
-export function TaskCardPreview({ calendarTargeted = false, category, task }: { calendarTargeted?: boolean; category: Category | undefined; task: Task }) {
-	return (
-		<article className={`task-card task-card--overlay${calendarTargeted ? " task-card--calendar-overlay" : ""}`}>
+		<article className={`task-card task-card--overlay${railTargeted ? " task-card--rail-overlay" : ""}`}>
 			<header className="task-card__header">
 				<strong className="task-card__title-preview">{task.title}</strong>
 				<span className={`urgency-flag urgency-${task.urgency}`}>
