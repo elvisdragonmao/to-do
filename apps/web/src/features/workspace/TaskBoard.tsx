@@ -94,6 +94,7 @@ function BoardColumn({
 							onUpdate={onUpdate}
 							searchMatch={searchMatches?.has(task.id)}
 							selected={selectedTaskId === task.id}
+							showStatus={view === "week"}
 							syncState={syncStates.get(task.id)}
 							task={task}
 						/>

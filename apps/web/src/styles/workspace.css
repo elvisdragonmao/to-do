@@ -663,6 +663,29 @@
 	flex: 0 0 auto;
 }
 
+.task-card__urgency {
+	align-items: center;
+	background: transparent;
+	border-radius: var(--md-sys-shape-corner-full);
+	height: 28px;
+	justify-content: center;
+	margin: -4px -4px -4px 0;
+	transition:
+		background-color var(--md-sys-motion-duration-short),
+		color var(--md-sys-motion-duration-short),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+	width: 28px;
+}
+
+.task-card__urgency:hover,
+.task-card__urgency:focus-visible {
+	background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.task-card__urgency:active {
+	transform: scale(0.88);
+}
+
 .urgency-flag svg {
 	height: 18px;
 	width: 18px;

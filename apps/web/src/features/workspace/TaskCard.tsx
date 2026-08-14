@@ -17,11 +17,12 @@ type TaskCardProps = {
 	onUpdate: (taskId: string, input: UpdateTaskInput) => void;
 	searchMatch: boolean | undefined;
 	selected: boolean;
+	showStatus: boolean;
 	syncState: SyncState;
 	task: Task;
 };
 
-export const TaskCard = memo(function TaskCard({ categories, category, containerId, onDelete, onSelect, onUpdate, searchMatch, selected, syncState, task }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({ categories, category, containerId, onDelete, onSelect, onUpdate, searchMatch, selected, showStatus, syncState, task }: TaskCardProps) {
 	const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
 		id: task.id,
 		data: { type: "task", task, containerId },
@@ -47,9 +48,7 @@ export const TaskCard = memo(function TaskCard({ categories, category, container
 			<TaskTextEditor
 				actions={
 					<>
-						<span aria-label={`緊急程度 ${task.urgency}`} className="urgency-flag">
-							<Icon name="flag" />
-						</span>
+						<UrgencyButton disabled={Boolean(syncState)} onChange={() => update("urgency", task.urgency === 4 ? 1 : task.urgency + 1)} urgency={task.urgency} />
 						<DeleteButton disabled={Boolean(syncState)} onDelete={() => onDelete(task.id)} />
 					</>
 				}
@@ -61,29 +60,20 @@ export const TaskCard = memo(function TaskCard({ categories, category, container
 
 			<div className="task-card__meta">
 				<StaticMeta icon="calendar" label="建立" value={formatShortDate(task.createdAt.slice(0, 10))} />
-				<EditableSelect
-					icon="board"
-					label="狀態"
-					onCommit={value => update("status", value as Task["status"])}
-					options={[
-						["TODO", "To Do"],
-						["DOING", "In Progress"],
-						["DONE", "Done"]
-					]}
-					value={task.status}
-				/>
-				<EditableSelect
-					icon="flag"
-					label="緊急"
-					onCommit={value => update("urgency", Number(value))}
-					options={[
-						["1", "1"],
-						["2", "2"],
-						["3", "3"],
-						["4", "4"]
-					]}
-					value={String(task.urgency)}
-				/>
+				<EditableInput emptyValue="Sprint" icon="calendar" label="預計" onCommit={value => update("scheduledDate", value || null)} type="date" value={task.scheduledDate ?? ""} />
+				{showStatus ? (
+					<EditableSelect
+						icon="board"
+						label="狀態"
+						onCommit={value => update("status", value as Task["status"])}
+						options={[
+							["TODO", "To Do"],
+							["DOING", "In Progress"],
+							["DONE", "Done"]
+						]}
+						value={task.status}
+					/>
+				) : null}
 				<EditableSelect color={category?.color} label="分類" onCommit={value => update("categoryId", value)} options={categories.map(item => [item.id, item.name])} value={task.categoryId} />
 				<EditableInput
 					icon="hourglass"
@@ -94,11 +84,7 @@ export const TaskCard = memo(function TaskCard({ categories, category, container
 					type="number"
 					value={task.estimatedHours === null ? "" : String(task.estimatedHours)}
 				/>
-				<EditableInput emptyValue="Sprint" icon="calendar" label="預計" onCommit={value => update("scheduledDate", value || null)} type="date" value={task.scheduledDate ?? ""} />
-				<EditableInput icon="calendar" label="初始" onCommit={value => update("initialPlannedDate", value)} type="date" value={task.initialPlannedDate} />
-				<EditableInput icon="history" label="最後" onCommit={value => update("lastPlannedDate", value)} type="date" value={task.lastPlannedDate} />
 				<EditableInput icon="clock" label="期限" onCommit={value => update("dueDate", value || null)} type="date" value={task.dueDate ?? ""} />
-				<EditableInput icon="check" label="完成" onCommit={value => update("completedDate", value || null)} type="date" value={task.completedDate ?? ""} />
 			</div>
 
 			{syncState ? (
@@ -110,6 +96,26 @@ export const TaskCard = memo(function TaskCard({ categories, category, container
 		</article>
 	);
 });
+
+function UrgencyButton({ disabled, onChange, urgency }: { disabled: boolean; onChange: () => void; urgency: number }) {
+	const nextUrgency = urgency === 4 ? 1 : urgency + 1;
+	return (
+		<button
+			aria-label={`緊急程度 ${urgency}，點擊調整為 ${nextUrgency}`}
+			className="task-card__urgency urgency-flag"
+			disabled={disabled}
+			onClick={event => {
+				event.stopPropagation();
+				onChange();
+			}}
+			onPointerDown={event => event.stopPropagation()}
+			title={`緊急程度 ${urgency}，點擊調整為 ${nextUrgency}`}
+			type="button"
+		>
+			<Icon name="flag" />
+		</button>
+	);
+}
 
 function DeleteButton({ disabled, onDelete }: { disabled: boolean; onDelete: () => void }) {
 	const [armed, setArmed] = useState(false);
