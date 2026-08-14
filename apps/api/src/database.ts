@@ -23,6 +23,7 @@ type TaskRow = {
 	description: string;
 	created_at: string;
 	updated_at: string;
+	is_backlog: number;
 	sprint_start: string;
 	scheduled_date: string | null;
 	initial_planned_date: string;
@@ -110,12 +111,19 @@ export class TodoDatabase {
 	}
 
 	listTasks(sprintStart: string): Task[] {
-		const rows = this.db.prepare("SELECT * FROM tasks WHERE sprint_start = ? ORDER BY status, scheduled_date IS NOT NULL, scheduled_date, sort_order, created_at").all(sprintStart) as TaskRow[];
+		const rows = this.db
+			.prepare("SELECT * FROM tasks WHERE sprint_start = ? AND is_backlog = 0 ORDER BY status, scheduled_date IS NOT NULL, scheduled_date, sort_order, created_at")
+			.all(sprintStart) as TaskRow[];
 		return rows.map(mapTask);
 	}
 
 	listBacklogTasks(): Task[] {
-		const rows = this.db.prepare("SELECT * FROM tasks WHERE status <> 'DONE' ORDER BY category_id, last_planned_date, sort_order, created_at").all() as TaskRow[];
+		const rows = this.db.prepare("SELECT * FROM tasks WHERE is_backlog = 1 ORDER BY category_id, sort_order, created_at").all() as TaskRow[];
+		return rows.map(mapTask);
+	}
+
+	listAllTasks(): Task[] {
+		const rows = this.db.prepare("SELECT * FROM tasks ORDER BY category_id, sort_order, created_at").all() as TaskRow[];
 		return rows.map(mapTask);
 	}
 
@@ -132,6 +140,7 @@ export class TodoDatabase {
 			description: input.description,
 			createdAt: now,
 			updatedAt: now,
+			isBacklog: input.isBacklog,
 			sprintStart: input.sprintStart,
 			scheduledDate: input.scheduledDate,
 			initialPlannedDate: input.scheduledDate ?? input.sprintStart,
@@ -140,8 +149,8 @@ export class TodoDatabase {
 			urgency: input.urgency,
 			estimatedHours: input.estimatedHours,
 			dueDate: input.dueDate,
-			completedDate: input.status === "DONE" ? currentIsoDate() : null,
-			status: input.status,
+			completedDate: !input.isBacklog && input.status === "DONE" ? currentIsoDate() : null,
+			status: input.isBacklog ? "TODO" : input.status,
 			sortOrder: Date.now(),
 			version: 1
 		};
@@ -149,10 +158,10 @@ export class TodoDatabase {
 		this.db
 			.prepare(
 				`INSERT INTO tasks (
-          id, title, description, created_at, updated_at, sprint_start, scheduled_date,
-          initial_planned_date, last_planned_date, category_id, urgency,
-          estimated_hours, due_date, completed_date, status, sort_order, version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				  id, title, description, created_at, updated_at, is_backlog, sprint_start, scheduled_date,
+				  initial_planned_date, last_planned_date, category_id, urgency,
+				  estimated_hours, due_date, completed_date, status, sort_order, version
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			)
 			.run(
 				task.id,
@@ -160,6 +169,7 @@ export class TodoDatabase {
 				task.description,
 				task.createdAt,
 				task.updatedAt,
+				task.isBacklog ? 1 : 0,
 				task.sprintStart,
 				task.scheduledDate,
 				task.initialPlannedDate,
@@ -183,13 +193,14 @@ export class TodoDatabase {
 
 		const nextSprintStart = input.sprintStart ?? current.sprintStart;
 		const nextScheduledDate = input.scheduledDate === undefined ? current.scheduledDate : input.scheduledDate;
+		const nextIsBacklog = input.isBacklog ?? current.isBacklog;
 		taskPlacementSchema.parse({
 			sprintStart: nextSprintStart,
 			scheduledDate: nextScheduledDate
 		});
 
-		const placementChanged = nextSprintStart !== current.sprintStart || nextScheduledDate !== current.scheduledDate;
-		const nextStatus = input.status ?? current.status;
+		const placementChanged = nextSprintStart !== current.sprintStart || nextScheduledDate !== current.scheduledDate || nextIsBacklog !== current.isBacklog;
+		const nextStatus = nextIsBacklog ? "TODO" : (input.status ?? current.status);
 		const automaticCompletedDate = current.status !== "DONE" && nextStatus === "DONE" ? currentIsoDate() : current.status === "DONE" && nextStatus !== "DONE" ? null : current.completedDate;
 		const automaticHistory = placementChanged
 			? resolvePlacementHistory(current, nextSprintStart, nextScheduledDate)
@@ -201,11 +212,13 @@ export class TodoDatabase {
 		const next: Task = {
 			...current,
 			...input,
+			isBacklog: nextIsBacklog,
 			sprintStart: nextSprintStart,
 			scheduledDate: nextScheduledDate,
 			initialPlannedDate: input.initialPlannedDate ?? automaticHistory.initialPlannedDate,
 			lastPlannedDate: input.lastPlannedDate ?? automaticHistory.lastPlannedDate,
 			completedDate: input.completedDate === undefined ? automaticCompletedDate : input.completedDate,
+			status: nextStatus,
 			updatedAt: new Date().toISOString(),
 			version: current.version + 1
 		};
@@ -213,8 +226,8 @@ export class TodoDatabase {
 		const result = this.db
 			.prepare(
 				`UPDATE tasks SET
-          title = ?, description = ?, updated_at = ?, sprint_start = ?, scheduled_date = ?,
-          initial_planned_date = ?, last_planned_date = ?, category_id = ?, urgency = ?,
+				  title = ?, description = ?, updated_at = ?, is_backlog = ?, sprint_start = ?, scheduled_date = ?,
+				  initial_planned_date = ?, last_planned_date = ?, category_id = ?, urgency = ?,
           estimated_hours = ?, due_date = ?, completed_date = ?, status = ?, sort_order = ?, version = ?
         WHERE id = ? AND version = ?`
 			)
@@ -222,6 +235,7 @@ export class TodoDatabase {
 				next.title,
 				next.description,
 				next.updatedAt,
+				next.isBacklog ? 1 : 0,
 				next.sprintStart,
 				next.scheduledDate,
 				next.initialPlannedDate,
@@ -275,8 +289,9 @@ export class TodoDatabase {
         title TEXT NOT NULL,
         description TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        sprint_start TEXT NOT NULL,
+		updated_at TEXT NOT NULL,
+		is_backlog INTEGER NOT NULL DEFAULT 0 CHECK (is_backlog IN (0, 1)),
+		sprint_start TEXT NOT NULL,
         scheduled_date TEXT,
         initial_planned_date TEXT NOT NULL,
         last_planned_date TEXT NOT NULL,
@@ -292,10 +307,14 @@ export class TodoDatabase {
 
       CREATE INDEX IF NOT EXISTS tasks_sprint_position
         ON tasks (sprint_start, scheduled_date, status, sort_order);
-      CREATE INDEX IF NOT EXISTS tasks_backlog
-        ON tasks (status, category_id, last_planned_date, sort_order);
-      CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions (expires_at);
-    `);
+	  CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions (expires_at);
+	`);
+
+		const taskColumns = this.db.prepare("PRAGMA table_info(tasks)").all() as { name: string }[];
+		if (!taskColumns.some(column => column.name === "is_backlog")) {
+			this.db.exec("ALTER TABLE tasks ADD COLUMN is_backlog INTEGER NOT NULL DEFAULT 0 CHECK (is_backlog IN (0, 1))");
+		}
+		this.db.exec("DROP INDEX IF EXISTS tasks_backlog; CREATE INDEX tasks_backlog ON tasks (is_backlog, category_id, sort_order, created_at)");
 
 		this.db
 			.prepare(
@@ -314,6 +333,7 @@ function mapTask(row: TaskRow): Task {
 		description: row.description,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
+		isBacklog: row.is_backlog === 1,
 		sprintStart: row.sprint_start,
 		scheduledDate: row.scheduled_date,
 		initialPlannedDate: row.initial_planned_date,

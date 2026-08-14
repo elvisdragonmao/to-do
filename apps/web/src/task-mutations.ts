@@ -23,15 +23,12 @@ export function useTaskMutations() {
 				updatedAt: now,
 				initialPlannedDate: input.scheduledDate ?? input.sprintStart,
 				lastPlannedDate: input.scheduledDate ?? input.sprintStart,
-				completedDate: input.status === "DONE" ? currentIsoDate() : null,
+				completedDate: !input.isBacklog && input.status === "DONE" ? currentIsoDate() : null,
 				sortOrder: Date.now(),
 				version: 1
 			};
-			client.setQueryData<SprintTasksResponse>(queryKeys.tasks.sprint(input.sprintStart), old => ({
-				sprintStart: input.sprintStart,
-				tasks: [...(old?.tasks ?? []), optimistic]
-			}));
-			if (optimistic.status !== "DONE") addToBacklog(client, optimistic);
+			if (!optimistic.isBacklog) addToSprint(client, optimistic);
+			if (optimistic.isBacklog) addToBacklog(client, optimistic);
 			return { snapshot };
 		},
 		onError: (error, _variables, context) => {
@@ -57,8 +54,9 @@ export function useTaskMutations() {
 
 			const sprintStart = input.sprintStart ?? current.sprintStart;
 			const scheduledDate = input.scheduledDate === undefined ? current.scheduledDate : input.scheduledDate;
-			const placementChanged = sprintStart !== current.sprintStart || scheduledDate !== current.scheduledDate;
-			const nextStatus = input.status ?? current.status;
+			const isBacklog = input.isBacklog ?? current.isBacklog;
+			const placementChanged = sprintStart !== current.sprintStart || scheduledDate !== current.scheduledDate || isBacklog !== current.isBacklog;
+			const nextStatus = isBacklog ? "TODO" : (input.status ?? current.status);
 			const completedDate =
 				input.completedDate !== undefined
 					? input.completedDate
@@ -76,19 +74,19 @@ export function useTaskMutations() {
 			const optimistic: Task = {
 				...current,
 				...input,
+				isBacklog,
 				sprintStart,
 				scheduledDate,
 				initialPlannedDate: input.initialPlannedDate ?? history.initialPlannedDate,
 				lastPlannedDate: input.lastPlannedDate ?? history.lastPlannedDate,
 				completedDate,
+				status: nextStatus,
 				updatedAt: new Date().toISOString(),
 				version: current.version + 1
 			};
 			removeTask(client, taskId);
-			client.setQueryData<SprintTasksResponse>(queryKeys.tasks.sprint(sprintStart), old => ({
-				sprintStart,
-				tasks: [...(old?.tasks ?? []), optimistic]
-			}));
+			if (optimistic.isBacklog) addToBacklog(client, optimistic);
+			else addToSprint(client, optimistic);
 			return { snapshot, oldSprint: current.sprintStart, newSprint: sprintStart };
 		},
 		onError: (error, _variables, context) => {
@@ -149,11 +147,15 @@ function removeTask(client: ReturnType<typeof useQueryClient>, id: string) {
 
 function replaceTask(client: ReturnType<typeof useQueryClient>, id: string, task: Task) {
 	removeTask(client, id);
+	if (task.isBacklog) addToBacklog(client, task);
+	else addToSprint(client, task);
+}
+
+function addToSprint(client: ReturnType<typeof useQueryClient>, task: Task) {
 	client.setQueryData<SprintTasksResponse>(queryKeys.tasks.sprint(task.sprintStart), old => ({
 		sprintStart: task.sprintStart,
 		tasks: [...(old?.tasks ?? []).filter(candidate => candidate.id !== task.id), task]
 	}));
-	if (task.status !== "DONE") addToBacklog(client, task);
 }
 
 function addToBacklog(client: ReturnType<typeof useQueryClient>, task: Task) {

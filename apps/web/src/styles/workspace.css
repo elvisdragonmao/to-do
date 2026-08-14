@@ -199,6 +199,16 @@
 	background: color-mix(in srgb, var(--md-sys-color-primary) 8%, var(--md-sys-color-surface-container-highest));
 }
 
+.backlog-task--dragging {
+	opacity: 0;
+}
+
+.backlog-task--syncing,
+.backlog-task--queued,
+.backlog-task--deleting {
+	opacity: 0.64;
+}
+
 .backlog-task strong {
 	font-size: var(--md-sys-typescale-body-medium-size);
 	overflow: hidden;

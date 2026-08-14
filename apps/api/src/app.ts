@@ -107,6 +107,12 @@ export async function createApp(options: AppOptions): Promise<FastifyInstance> {
 		return categorySchema.parse(category);
 	});
 
+	app.get("/api/tasks/all", async () =>
+		taskListResponseSchema.parse({
+			tasks: database.listAllTasks()
+		})
+	);
+
 	app.get("/api/tasks", async request => {
 		const { sprintStart } = parse(z.object({ sprintStart: isoDateSchema }), request.query);
 		return sprintTasksResponseSchema.parse({

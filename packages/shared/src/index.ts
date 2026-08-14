@@ -25,6 +25,7 @@ export const taskSchema = z.object({
 	description: z.string().max(4000),
 	createdAt: z.string(),
 	updatedAt: z.string(),
+	isBacklog: z.boolean(),
 	sprintStart: isoDateSchema,
 	scheduledDate: isoDateSchema.nullable(),
 	initialPlannedDate: isoDateSchema,
@@ -64,7 +65,8 @@ export const createTaskSchema = z
 		urgency: urgencySchema.default(2),
 		estimatedHours: z.number().min(0).max(10000).nullable().default(null),
 		dueDate: isoDateSchema.nullable().default(null),
-		status: taskStatusSchema.default("TODO")
+		status: taskStatusSchema.default("TODO"),
+		isBacklog: z.boolean().default(false)
 	})
 	.superRefine(({ sprintStart, scheduledDate }, context) => {
 		if (scheduledDate && startOfSprint(scheduledDate) !== sprintStart) {
@@ -90,6 +92,7 @@ export const updateTaskSchema = z
 		dueDate: isoDateSchema.nullable().optional(),
 		completedDate: isoDateSchema.nullable().optional(),
 		status: taskStatusSchema.optional(),
+		isBacklog: z.boolean().optional(),
 		sortOrder: z.number().optional(),
 		version: z.number().int().positive()
 	})
@@ -161,7 +164,7 @@ export function sprintDays(sprintStart: string): string[] {
 }
 
 export function resolvePlacementHistory(
-	task: Pick<Task, "initialPlannedDate" | "sprintStart">,
+	task: Pick<Task, "initialPlannedDate" | "isBacklog" | "sprintStart">,
 	nextSprintStart: string,
 	nextScheduledDate: string | null
 ): Pick<Task, "initialPlannedDate" | "lastPlannedDate"> {
@@ -169,7 +172,7 @@ export function resolvePlacementHistory(
 	const canRefineInitialSprint = task.initialPlannedDate === task.sprintStart && nextSprintStart === task.sprintStart && nextScheduledDate !== null;
 
 	return {
-		initialPlannedDate: canRefineInitialSprint ? nextScheduledDate : task.initialPlannedDate,
+		initialPlannedDate: task.isBacklog ? target : canRefineInitialSprint ? nextScheduledDate : task.initialPlannedDate,
 		lastPlannedDate: target
 	};
 }

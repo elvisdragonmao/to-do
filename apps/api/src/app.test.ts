@@ -126,7 +126,7 @@ describe("EM's To Do API", () => {
 		expect(updated.json()).toMatchObject({ name: "Study", color: "#DC5002" });
 	});
 
-	it("returns unfinished backlog tasks across every sprint", async () => {
+	it("separates unassigned backlog tasks from sprint and all-task lists", async () => {
 		const categories = await app.inject({
 			method: "GET",
 			url: "/api/categories",
@@ -135,7 +135,7 @@ describe("EM's To Do API", () => {
 		const categoryId = categories.json().categories[0].id as string;
 		const firstSprint = startOfSprint("2026-08-10");
 		const secondSprint = addDays(firstSprint, 7);
-		const create = (title: string, sprintStart: string, status: "TODO" | "DOING" | "DONE") =>
+		const create = (title: string, sprintStart: string, status: "TODO" | "DOING" | "DONE", isBacklog = false) =>
 			app.inject({
 				method: "POST",
 				url: "/api/tasks",
@@ -149,11 +149,12 @@ describe("EM's To Do API", () => {
 					urgency: 2,
 					estimatedHours: null,
 					dueDate: null,
-					status
+					status,
+					isBacklog
 				}
 			});
 
-		await Promise.all([create("First sprint", firstSprint, "TODO"), create("Second sprint", secondSprint, "DOING"), create("Completed", secondSprint, "DONE")]);
+		await Promise.all([create("Backlog", firstSprint, "TODO", true), create("Scheduled", firstSprint, "TODO"), create("Completed", secondSprint, "DONE")]);
 		const backlog = await app.inject({
 			method: "GET",
 			url: "/api/tasks/backlog",
@@ -161,12 +162,22 @@ describe("EM's To Do API", () => {
 		});
 
 		expect(backlog.statusCode).toBe(200);
+		expect(backlog.json().tasks.map((task: { title: string }) => task.title)).toEqual(["Backlog"]);
+
+		const sprint = await app.inject({
+			method: "GET",
+			url: `/api/tasks?sprintStart=${firstSprint}`,
+			headers: { cookie }
+		});
+		expect(sprint.json().tasks.map((task: { title: string }) => task.title)).toEqual(["Scheduled"]);
+
+		const all = await app.inject({ method: "GET", url: "/api/tasks/all", headers: { cookie } });
 		expect(
-			backlog
+			all
 				.json()
 				.tasks.map((task: { title: string }) => task.title)
 				.toSorted()
-		).toEqual(["First sprint", "Second sprint"]);
+		).toEqual(["Backlog", "Completed", "Scheduled"]);
 	});
 
 	it("returns a conflict for duplicate category names", async () => {

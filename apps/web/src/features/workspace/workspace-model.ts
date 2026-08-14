@@ -61,6 +61,7 @@ export function createInputForTarget({
 	return {
 		title,
 		description,
+		isBacklog: target.kind === "category",
 		sprintStart: target.kind === "day" ? target.sprintStart : sprintStart,
 		scheduledDate: target.kind === "day" ? target.scheduledDate : null,
 		categoryId: target.kind === "category" ? target.categoryId : categoryId,
@@ -71,9 +72,13 @@ export function createInputForTarget({
 	};
 }
 
-export function updateForTarget(task: Task, target: PlacementTarget, sortOrder: number): UpdateTaskInput {
+export function updateForTarget(task: Task, target: PlacementTarget, sortOrder: number, sprintStart = task.sprintStart): UpdateTaskInput {
 	const placement =
-		target.kind === "day" ? { scheduledDate: target.scheduledDate, sprintStart: target.sprintStart } : target.kind === "status" ? { status: target.status } : { categoryId: target.categoryId };
+		target.kind === "day"
+			? { isBacklog: false, scheduledDate: target.scheduledDate, sprintStart: target.sprintStart }
+			: target.kind === "status"
+				? { isBacklog: false, sprintStart, status: target.status }
+				: { categoryId: target.categoryId, isBacklog: true, scheduledDate: null, status: "TODO" as const };
 	return { version: task.version, sortOrder, ...placement };
 }
 

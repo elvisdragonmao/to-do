@@ -1,5 +1,5 @@
 import type { Category, Task } from "@em-todo/shared";
-import { useDroppable } from "@dnd-kit/core";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { RefObject } from "react";
 
 import { CategoryColorMenu } from "../categories/CategoryColorMenu.js";
@@ -7,6 +7,7 @@ import { formatShortDate } from "../../date-format.js";
 import { Icon } from "../../icons.js";
 import { QuickCreate, type QuickCreateValues } from "./QuickCreate.js";
 import type { DropProjection } from "./TaskBoard.js";
+import type { SyncState } from "./TaskCard.js";
 import { tasksForTarget, type NumberedTarget, type PlacementTarget } from "./workspace-model.js";
 
 type WorkspaceSidebarProps = {
@@ -25,6 +26,7 @@ type WorkspaceSidebarProps = {
 	projection: DropProjection;
 	search: string;
 	searchRef: RefObject<HTMLInputElement | null>;
+	syncStates: Map<string, SyncState>;
 	targeting: boolean;
 	tasks: Task[];
 };
@@ -93,17 +95,40 @@ function CategoryGroup(props: WorkspaceSidebarProps & { category: Category }) {
 				</header>
 				{props.activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={props.onCancelCreate} onCreate={values => props.onCreate(target, values)} /> : null}
 				{categoryTasks.map(task => (
-					<button className="backlog-task" key={task.id} onClick={() => props.onSelectTask(task)} type="button">
-						<strong>{task.title}</strong>
-						<span>
-							{task.estimatedHours === null ? null : `${task.estimatedHours}h`}
-							{task.estimatedHours !== null && task.dueDate ? " · " : null}
-							{task.dueDate ? formatShortDate(task.dueDate) : null}
-						</span>
-					</button>
+					<BacklogTask containerId={target.id} key={task.id} onSelect={() => props.onSelectTask(task)} syncState={props.syncStates.get(task.id)} task={task} />
 				))}
 				{projected ? <div aria-hidden="true" className="backlog-drop-placeholder" /> : null}
 			</section>
 		</CategoryColorMenu>
+	);
+}
+
+function BacklogTask({ containerId, onSelect, syncState, task }: { containerId: string; onSelect: () => void; syncState: SyncState; task: Task }) {
+	const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
+		id: task.id,
+		data: { type: "task", task, containerId },
+		disabled: Boolean(syncState)
+	});
+
+	return (
+		<button
+			{...attributes}
+			{...listeners}
+			aria-busy={Boolean(syncState)}
+			className={`backlog-task${isDragging ? " backlog-task--dragging" : ""}${syncState ? ` backlog-task--${syncState}` : ""}`}
+			data-backlog-task
+			data-task-id={task.id}
+			disabled={Boolean(syncState)}
+			onClick={onSelect}
+			ref={setNodeRef}
+			type="button"
+		>
+			<strong>{task.title}</strong>
+			<span>
+				{syncState ? (syncState === "queued" ? "待同步" : syncState === "deleting" ? "刪除中" : "同步中") : task.estimatedHours === null ? null : `${task.estimatedHours}h`}
+				{!syncState && task.estimatedHours !== null && task.dueDate ? " · " : null}
+				{!syncState && task.dueDate ? formatShortDate(task.dueDate) : null}
+			</span>
+		</button>
 	);
 }

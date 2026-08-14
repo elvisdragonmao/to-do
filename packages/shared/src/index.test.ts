@@ -17,6 +17,7 @@ describe("sprint dates", () => {
 
 describe("placement history", () => {
 	const task = {
+		isBacklog: false,
 		sprintStart: "2026-08-10",
 		initialPlannedDate: "2026-08-10"
 	};
@@ -32,6 +33,13 @@ describe("placement history", () => {
 		expect(resolvePlacementHistory(task, "2026-08-17", "2026-08-18")).toEqual({
 			initialPlannedDate: "2026-08-10",
 			lastPlannedDate: "2026-08-18"
+		});
+	});
+
+	it("sets the initial plan when a backlog item enters a sprint", () => {
+		expect(resolvePlacementHistory({ ...task, isBacklog: true }, "2026-08-17", "2026-08-19")).toEqual({
+			initialPlannedDate: "2026-08-19",
+			lastPlannedDate: "2026-08-19"
 		});
 	});
 });

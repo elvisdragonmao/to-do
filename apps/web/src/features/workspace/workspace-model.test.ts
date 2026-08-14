@@ -31,7 +31,7 @@ describe("quick create", () => {
 			target: weekTargets("2026-08-17")[1]!,
 			title: "Study Physics"
 		});
-		expect(input).toMatchObject({ title: "Study Physics", description: "Electromagnetism", estimatedHours: 1.5, dueDate: "2026-08-30", scheduledDate: "2026-08-17" });
+		expect(input).toMatchObject({ title: "Study Physics", description: "Electromagnetism", estimatedHours: 1.5, dueDate: "2026-08-30", isBacklog: false, scheduledDate: "2026-08-17" });
 	});
 
 	it("moves a task to the sprint containing a calendar date", () => {
@@ -41,6 +41,7 @@ describe("quick create", () => {
 			description: "",
 			createdAt: "2026-08-01T00:00:00.000Z",
 			updatedAt: "2026-08-01T00:00:00.000Z",
+			isBacklog: false,
 			sprintStart: "2026-08-10",
 			scheduledDate: null,
 			initialPlannedDate: "2026-08-10",
@@ -56,6 +57,35 @@ describe("quick create", () => {
 		};
 		const input = updateForTarget(task, { id: "calendar:2026-08-19", kind: "day", label: "2026-08-19", scheduledDate: "2026-08-19", sprintStart: "2026-08-17" }, 1024);
 
-		expect(input).toEqual({ version: 3, sortOrder: 1024, sprintStart: "2026-08-17", scheduledDate: "2026-08-19" });
+		expect(input).toEqual({ version: 3, sortOrder: 1024, isBacklog: false, sprintStart: "2026-08-17", scheduledDate: "2026-08-19" });
+	});
+
+	it("moves a backlog item into the current Kanban sprint", () => {
+		const task = {
+			id: "backlog-task",
+			title: "Plan me",
+			description: "",
+			createdAt: "2026-08-01T00:00:00.000Z",
+			updatedAt: "2026-08-01T00:00:00.000Z",
+			isBacklog: true,
+			sprintStart: "2026-08-10",
+			scheduledDate: null,
+			initialPlannedDate: "2026-08-10",
+			lastPlannedDate: "2026-08-10",
+			categoryId: "uncategorized",
+			urgency: 2 as const,
+			estimatedHours: null,
+			dueDate: null,
+			completedDate: null,
+			status: "TODO" as const,
+			sortOrder: 1,
+			version: 1
+		};
+
+		expect(updateForTarget(task, { id: "status:TODO", kind: "status", label: "To Do", status: "TODO" }, 2048, "2026-08-17")).toMatchObject({
+			isBacklog: false,
+			sprintStart: "2026-08-17",
+			status: "TODO"
+		});
 	});
 });

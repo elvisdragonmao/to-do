@@ -14,6 +14,7 @@ export function useWorkspaceKeyboard({
 	onPreviousSprint,
 	onSelectTarget,
 	onSetView,
+	onToday,
 	targeting
 }: {
 	onCreate: () => void;
@@ -25,6 +26,7 @@ export function useWorkspaceKeyboard({
 	onPreviousSprint: () => void;
 	onSelectTarget: (key: string) => boolean;
 	onSetView: (view: ViewMode) => void;
+	onToday: () => void;
 	targeting: boolean;
 }) {
 	useEffect(() => {
@@ -58,6 +60,9 @@ export function useWorkspaceKeyboard({
 			} else if (event.key === "2") {
 				event.preventDefault();
 				onSetView("week");
+			} else if (event.key.toLowerCase() === "t") {
+				event.preventDefault();
+				onToday();
 			} else if (event.key === "[") {
 				event.preventDefault();
 				onPreviousSprint();
@@ -71,7 +76,7 @@ export function useWorkspaceKeyboard({
 		};
 		window.addEventListener("keydown", handler);
 		return () => window.removeEventListener("keydown", handler);
-	}, [onCreate, onEscape, onFocusSearch, onMoveSelection, onNextSprint, onOpenShortcuts, onPreviousSprint, onSelectTarget, onSetView, targeting]);
+	}, [onCreate, onEscape, onFocusSearch, onMoveSelection, onNextSprint, onOpenShortcuts, onPreviousSprint, onSelectTarget, onSetView, onToday, targeting]);
 }
 
 export function findDirectionalTask(selectedTaskId: string | null, direction: Direction): HTMLElement | null {

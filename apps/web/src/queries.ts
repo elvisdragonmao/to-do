@@ -81,7 +81,7 @@ export const persister = createSyncStoragePersister({
 export const persistOptions = {
 	persister,
 	maxAge: 1000 * 60 * 60 * 24 * 7,
-	buster: "em-to-do-v1",
+	buster: "em-to-do-v2",
 	dehydrateOptions: {
 		shouldDehydrateQuery: (query: { queryKey: readonly unknown[]; state: { status: string } }) =>
 			query.state.status === "success" && (query.queryKey[0] === "tasks" || query.queryKey[0] === "categories" || query.queryKey[0] === "session"),

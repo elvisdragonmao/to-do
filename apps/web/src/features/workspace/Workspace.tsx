@@ -118,6 +118,16 @@ export function Workspace() {
 		setTargeting(false);
 	}, []);
 	const goToSprint = useCallback((next: string) => navigate(`/app/sprint/${next}`), [navigate]);
+	const goToday = useCallback(() => {
+		const todaySprint = startOfSprint(new Date());
+		if (todaySprint !== sprintStart) {
+			goToSprint(todaySprint);
+			return;
+		}
+		setPreviewSprintStart(sprintStart);
+		const currentPage = pagerRef.current?.querySelector<HTMLElement>(".sprint-page--current");
+		if (currentPage && pagerRef.current) pagerRef.current.scrollTo({ behavior: "auto", top: currentPage.offsetTop });
+	}, [goToSprint, sprintStart]);
 	const dragging = activeTask !== null;
 	const goRelative = useSprintPager(pagerRef, sprintStart, goToSprint, setPreviewSprintStart, dragging);
 	const forwardChromeWheel = useCallback(
@@ -149,6 +159,10 @@ export function Workspace() {
 	}, []);
 	const selectBacklogTask = useCallback(
 		(task: Task) => {
+			if (task.isBacklog) {
+				setSelectedTaskId(task.id);
+				return;
+			}
 			setSidebarOpen(false);
 			if (task.sprintStart === sprintStart) {
 				selectTask(task.id, true);
@@ -222,6 +236,7 @@ export function Workspace() {
 		onPreviousSprint: () => goRelative(-1),
 		onSelectTarget: chooseNumberedTarget,
 		onSetView: setView,
+		onToday: goToday,
 		targeting
 	});
 	useEffect(() => {
@@ -281,7 +296,7 @@ export function Workspace() {
 			next.target
 		);
 		const sortOrder = sortOrderBefore(destination, next.beforeTaskId);
-		updateTask(task.id, updateForTarget(task, next.target, sortOrder));
+		updateTask(task.id, updateForTarget(task, next.target, sortOrder, sprintStart));
 	};
 
 	if (sprintStart !== rawSprintStart) return <Navigate replace to={`/app/sprint/${sprintStart}`} />;
@@ -319,6 +334,7 @@ export function Workspace() {
 					searchRef={searchRef}
 					targeting={targeting}
 					tasks={visibleBacklogTasks}
+					syncStates={syncStates}
 				/>
 
 				<main aria-label="Sprint" className="workspace" onWheel={forwardChromeWheel}>
