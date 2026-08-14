@@ -9,6 +9,7 @@ import {
 	sessionSchema,
 	sprintTasksResponseSchema,
 	taskSchema,
+	updateCategorySchema,
 	updateTaskSchema
 } from "@sprintly/shared";
 import cookie from "@fastify/cookie";
@@ -99,6 +100,13 @@ export async function createApp(options: AppOptions): Promise<FastifyInstance> {
 	app.post("/api/categories", async (request, reply) => {
 		const category = database.createCategory(parse(createCategorySchema, request.body));
 		return reply.code(201).send(categorySchema.parse(category));
+	});
+
+	app.patch("/api/categories/:id", async (request, reply) => {
+		const { id } = parse(z.object({ id: z.string().min(1) }), request.params);
+		const category = database.updateCategory(id, parse(updateCategorySchema, request.body));
+		if (!category) return sendError(reply, 404, "CATEGORY_NOT_FOUND", "找不到這個分類");
+		return categorySchema.parse(category);
 	});
 
 	app.get("/api/tasks", async request => {

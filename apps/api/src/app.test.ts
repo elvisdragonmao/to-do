@@ -90,6 +90,25 @@ describe("Sprintly API", () => {
 		expect(movedAgain.json().lastPlannedDate).toBe(addDays(nextSprint, 1));
 	});
 
+	it("updates a category color", async () => {
+		const created = await app.inject({
+			method: "POST",
+			url: "/api/categories",
+			headers: { cookie, "x-sprintly-request": "web" },
+			payload: { name: "Study", color: "#DD8406" }
+		});
+
+		const updated = await app.inject({
+			method: "PATCH",
+			url: `/api/categories/${created.json().id}`,
+			headers: { cookie, "x-sprintly-request": "web" },
+			payload: { color: "#DC5002" }
+		});
+
+		expect(updated.statusCode).toBe(200);
+		expect(updated.json()).toMatchObject({ name: "Study", color: "#DC5002" });
+	});
+
 	it("rejects stale writes and untrusted mutations", async () => {
 		const sprintStart = startOfSprint(new Date());
 		const categories = await app.inject({

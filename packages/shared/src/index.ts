@@ -98,6 +98,10 @@ export const createCategorySchema = z.object({
 	color: z.string().regex(/^#[0-9a-fA-F]{6}$/)
 });
 
+export const updateCategorySchema = z.object({
+	color: z.string().regex(/^#[0-9a-fA-F]{6}$/)
+});
+
 export const loginRequestSchema = z.object({
 	password: z.string().min(1, "請輸入密碼").max(512)
 });
@@ -128,6 +132,7 @@ export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type SprintTasksResponse = z.infer<typeof sprintTasksResponseSchema>;
 export type Task = z.infer<typeof taskSchema>;
 export type TaskStatus = z.infer<typeof taskStatusSchema>;
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 
 export function startOfSprint(value: Date | string): string {

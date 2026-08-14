@@ -1,4 +1,13 @@
-import { type Category, type CreateCategoryInput, type CreateTaskInput, type Task, type UpdateTaskInput, resolvePlacementHistory, taskPlacementSchema } from "@sprintly/shared";
+import {
+	type Category,
+	type CreateCategoryInput,
+	type CreateTaskInput,
+	type Task,
+	type UpdateCategoryInput,
+	type UpdateTaskInput,
+	resolvePlacementHistory,
+	taskPlacementSchema
+} from "@sprintly/shared";
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -90,6 +99,13 @@ export class SprintlyDatabase {
 			.prepare("INSERT INTO categories (id, name, color, is_default, created_at, sort_order) VALUES (?, ?, ?, 0, ?, ?)")
 			.run(category.id, category.name, category.color, category.createdAt, category.sortOrder);
 		return category;
+	}
+
+	updateCategory(id: string, input: UpdateCategoryInput): Category | null {
+		const result = this.db.prepare("UPDATE categories SET color = ? WHERE id = ?").run(input.color, id);
+		if (result.changes !== 1) return null;
+		const row = this.db.prepare("SELECT * FROM categories WHERE id = ?").get(id) as CategoryRow;
+		return mapCategory(row);
 	}
 
 	listTasks(sprintStart: string): Task[] {
