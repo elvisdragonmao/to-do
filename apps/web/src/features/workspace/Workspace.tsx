@@ -24,7 +24,7 @@ import { Spinner } from "../../components/Spinner.js";
 import { SyncIndicator } from "../../components/SyncIndicator.js";
 import { formatSprintLabel } from "../../date-format.js";
 import { Icon } from "../../icons.js";
-import { backlogTasksQuery, categoriesQuery, persister, queryKeys, sprintTasksQuery } from "../../queries.js";
+import { allTasksQuery, backlogTasksQuery, categoriesQuery, persister, queryKeys, sprintTasksQuery } from "../../queries.js";
 import { useTaskMutations } from "../../task-mutations.js";
 import { useTheme } from "../../theme.js";
 import { useCategoryMutations } from "../categories/useCategoryMutations.js";
@@ -33,6 +33,7 @@ import type { QuickCreateValues } from "./QuickCreate.js";
 import { SprintPreviewPage } from "./SprintPreviewPage.js";
 import { TaskBoard, type DropProjection } from "./TaskBoard.js";
 import { TaskCardPreview, type SyncState } from "./TaskCard.js";
+import { TaskListView } from "./TaskListView.js";
 import { TASK_TRASH_ID, TaskTrash } from "./TaskTrash.js";
 import { WorkspaceSidebar } from "./WorkspaceSidebar.js";
 import { findDirectionalTask, useWorkspaceKeyboard } from "./useWorkspaceKeyboard.js";
@@ -76,7 +77,11 @@ export function Workspace() {
 	const taskMutations = useTaskMutations();
 	const categoryMutations = useCategoryMutations();
 	const [theme, toggleTheme] = useTheme();
-	const [view, setViewState] = useState<ViewMode>(() => (localStorage.getItem("em-todo-view") === "week" ? "week" : "kanban"));
+	const [view, setViewState] = useState<ViewMode>(() => {
+		const stored = localStorage.getItem("em-todo-view");
+		return stored === "week" || stored === "list" ? stored : "kanban";
+	});
+	const allTasksResult = useQuery({ ...allTasksQuery(), enabled: view === "list" });
 	const [search, setSearch] = useState("");
 	const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase("zh-TW"));
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -93,22 +98,24 @@ export function Workspace() {
 	const pendingFocusTaskRef = useRef<string | null>(null);
 	const tasks = tasksQuery.data?.tasks ?? [];
 	const backlogTasks = backlogQuery.data?.tasks ?? [];
+	const allTasks = allTasksResult.data?.tasks ?? [];
 	const categories = categoriesResult.data ?? [];
 	const visibleSprintTasks = visibleSprintStart === sprintStart ? tasks : (pageTaskQueries[visibleSprintIndex]?.data?.tasks ?? []);
 	const uncategorized = categories.find(category => category.isDefault)?.id ?? categories[0]?.id ?? "uncategorized";
 	const numbered = useMemo(() => numberedTargets(view, sprintStart, categories), [categories, sprintStart, view]);
 	const syncStates = useSyncStates();
+	const searchableTasks = view === "list" ? allTasks : tasks;
 	const searchMatches = useMemo(() => {
 		if (!deferredSearch) return null;
 		return new Set(
-			tasks
+			searchableTasks
 				.filter(task => {
 					const category = categories.find(item => item.id === task.categoryId)?.name ?? "";
 					return `${task.title} ${task.description} ${category}`.toLocaleLowerCase("zh-TW").includes(deferredSearch);
 				})
 				.map(task => task.id)
 		);
-	}, [categories, deferredSearch, tasks]);
+	}, [categories, deferredSearch, searchableTasks]);
 	const visibleBacklogTasks = useMemo(() => {
 		if (!deferredSearch) return backlogTasks;
 		return backlogTasks.filter(task => {
@@ -126,14 +133,15 @@ export function Workspace() {
 	const goToSprint = useCallback((next: string) => navigate(`/app/sprint/${next}`), [navigate]);
 	const goToday = useCallback(() => {
 		const todaySprint = startOfSprint(new Date());
-		if (todaySprint !== sprintStart) {
-			goToSprint(todaySprint);
-			return;
-		}
-		setPreviewSprintStart(sprintStart);
-		const currentPage = pagerRef.current?.querySelector<HTMLElement>(".sprint-page--current");
-		if (currentPage && pagerRef.current) pagerRef.current.scrollTo({ behavior: "auto", top: currentPage.offsetTop });
-	}, [goToSprint, sprintStart]);
+		setPreviewSprintStart(todaySprint);
+		goToSprint(todaySprint);
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				const currentPage = pagerRef.current?.querySelector<HTMLElement>(".sprint-page--current");
+				if (currentPage && pagerRef.current) pagerRef.current.scrollTo({ behavior: "auto", top: currentPage.offsetTop });
+			});
+		});
+	}, [goToSprint]);
 	const dragging = activeTask !== null;
 	const goRelative = useSprintPager(pagerRef, sprintStart, goToSprint, setPreviewSprintStart, dragging);
 	const forwardChromeWheel = useCallback(
@@ -147,11 +155,12 @@ export function Workspace() {
 	);
 	const selectSprint = useCallback(
 		(next: string) => {
-			if (next === previousSprintStart) goRelative(-1);
+			if (view === "list") goToSprint(next);
+			else if (next === previousSprintStart) goRelative(-1);
 			else if (next === nextSprintStart) goRelative(1);
 			else goToSprint(next);
 		},
-		[goRelative, goToSprint, nextSprintStart, previousSprintStart]
+		[goRelative, goToSprint, nextSprintStart, previousSprintStart, view]
 	);
 	const selectTask = useCallback((taskId: string, focus = false) => {
 		setSelectedTaskId(taskId);
@@ -166,6 +175,9 @@ export function Workspace() {
 	const selectBacklogTask = useCallback(
 		(task: Task) => {
 			if (task.isBacklog) {
+				setSidebarOpen(false);
+				setView("list");
+				pendingFocusTaskRef.current = task.id;
 				setSelectedTaskId(task.id);
 				return;
 			}
@@ -178,7 +190,7 @@ export function Workspace() {
 			setSelectedTaskId(task.id);
 			goToSprint(task.sprintStart);
 		},
-		[goToSprint, selectTask, sprintStart]
+		[goToSprint, selectTask, setView, sprintStart]
 	);
 	const focusSearch = useCallback(() => {
 		setSidebarOpen(true);
@@ -186,7 +198,7 @@ export function Workspace() {
 	}, []);
 	const beginTargeting = useCallback(() => {
 		setActiveTarget(null);
-		setSidebarOpen(view === "kanban");
+		setSidebarOpen(view !== "week");
 		setTargeting(true);
 	}, [view]);
 	const chooseNumberedTarget = useCallback(
@@ -237,9 +249,9 @@ export function Workspace() {
 		},
 		onFocusSearch: focusSearch,
 		onMoveSelection: moveSelection,
-		onNextSprint: () => goRelative(1),
+		onNextSprint: () => (view === "list" ? goToSprint(nextSprintStart) : goRelative(1)),
 		onOpenShortcuts: () => setShortcutsOpen(true),
-		onPreviousSprint: () => goRelative(-1),
+		onPreviousSprint: () => (view === "list" ? goToSprint(previousSprintStart) : goRelative(-1)),
 		onSelectTarget: chooseNumberedTarget,
 		onSetView: setView,
 		onToday: goToday,
@@ -247,15 +259,17 @@ export function Workspace() {
 	});
 	useEffect(() => {
 		if (!deferredSearch) return;
-		const match = tasks.find(task => searchMatches?.has(task.id));
+		const match = searchableTasks.find(task => searchMatches?.has(task.id));
 		if (match) selectTask(match.id, true);
-	}, [deferredSearch, searchMatches, selectTask, tasks]);
+	}, [deferredSearch, searchMatches, searchableTasks, selectTask]);
 	useEffect(() => {
 		const taskId = pendingFocusTaskRef.current;
-		if (!taskId || !tasks.some(task => task.id === taskId)) return;
+		const focusableTasks = view === "list" ? allTasks : tasks;
+		if (!taskId || !focusableTasks.some(task => task.id === taskId)) return;
 		pendingFocusTaskRef.current = null;
 		selectTask(taskId, true);
-	}, [selectTask, tasks]);
+	}, [allTasks, selectTask, tasks, view]);
+	useEffect(() => setPreviewSprintStart(sprintStart), [sprintStart]);
 	useEffect(() => {
 		const mobile = window.matchMedia("(max-width: 839px)");
 		const closeOnMobile = (event: MediaQueryListEvent) => {
@@ -358,47 +372,64 @@ export function Workspace() {
 					</header>
 
 					<div className="workspace-body">
-						<section aria-label="Sprint 項目" className={`sprint-pager${dragging ? " is-dragging" : ""}`} ref={pagerRef}>
-							{pagerSprints.map((pageSprintStart, index) =>
-								pageSprintStart === sprintStart ? (
-									<section aria-label={`${formatSprintLabel(sprintStart)} 項目`} className="sprint-page sprint-page--current" data-sprint-start={sprintStart} key={pageSprintStart}>
-										{tasksQuery.isPending && !tasksQuery.data ? (
-											<div aria-busy="true" className="content-state">
-												<Spinner label="載入中" />
-											</div>
-										) : tasksQuery.isError && !tasksQuery.data ? (
-											<div className="content-state" role="alert">
-												<p>{tasksQuery.error.message}</p>
-												<button className="button button--filled-tonal" onClick={() => tasksQuery.refetch()} type="button">
-													重試
-												</button>
-											</div>
-										) : (
-											<TaskBoard
-												activeTarget={activeTarget}
-												categories={categories}
-												numbered={numbered}
-												onCancelCreate={cancelCreate}
-												onCreate={createTask}
-												onSelect={taskId => selectTask(taskId)}
-												onStartCreate={startCreate}
-												onUpdate={updateTask}
-												projection={projection}
-												searchMatches={searchMatches}
-												selectedTaskId={selectedTaskId}
-												sprintStart={sprintStart}
-												syncStates={syncStates}
-												targeting={targeting}
-												tasks={tasks}
-												view={view}
-											/>
-										)}
-									</section>
-								) : (
-									<SprintPreviewPage categories={categories} key={pageSprintStart} sprintStart={pageSprintStart} tasks={pageTaskQueries[index]?.data?.tasks ?? []} view={view} />
-								)
-							)}
-						</section>
+						{view === "list" ? (
+							allTasksResult.isPending && !allTasksResult.data ? (
+								<div aria-busy="true" className="content-state">
+									<Spinner label="載入所有項目" />
+								</div>
+							) : allTasksResult.isError && !allTasksResult.data ? (
+								<div className="content-state" role="alert">
+									<p>{allTasksResult.error.message}</p>
+									<button className="button button--filled-tonal" onClick={() => allTasksResult.refetch()} type="button">
+										重試
+									</button>
+								</div>
+							) : (
+								<TaskListView categories={categories} onSelect={taskId => selectTask(taskId)} searchMatches={searchMatches} selectedTaskId={selectedTaskId} syncStates={syncStates} tasks={allTasks} />
+							)
+						) : (
+							<section aria-label="Sprint 項目" className={`sprint-pager${dragging ? " is-dragging" : ""}`} ref={pagerRef}>
+								{pagerSprints.map((pageSprintStart, index) =>
+									pageSprintStart === sprintStart ? (
+										<section aria-label={`${formatSprintLabel(sprintStart)} 項目`} className="sprint-page sprint-page--current" data-sprint-start={sprintStart} key={pageSprintStart}>
+											{tasksQuery.isPending && !tasksQuery.data ? (
+												<div aria-busy="true" className="content-state">
+													<Spinner label="載入中" />
+												</div>
+											) : tasksQuery.isError && !tasksQuery.data ? (
+												<div className="content-state" role="alert">
+													<p>{tasksQuery.error.message}</p>
+													<button className="button button--filled-tonal" onClick={() => tasksQuery.refetch()} type="button">
+														重試
+													</button>
+												</div>
+											) : (
+												<TaskBoard
+													activeTarget={activeTarget}
+													categories={categories}
+													numbered={numbered}
+													onCancelCreate={cancelCreate}
+													onCreate={createTask}
+													onSelect={taskId => selectTask(taskId)}
+													onStartCreate={startCreate}
+													onUpdate={updateTask}
+													projection={projection}
+													searchMatches={searchMatches}
+													selectedTaskId={selectedTaskId}
+													sprintStart={sprintStart}
+													syncStates={syncStates}
+													targeting={targeting}
+													tasks={tasks}
+													view={view}
+												/>
+											)}
+										</section>
+									) : (
+										<SprintPreviewPage categories={categories} key={pageSprintStart} sprintStart={pageSprintStart} tasks={pageTaskQueries[index]?.data?.tasks ?? []} view={view} />
+									)
+								)}
+							</section>
+						)}
 						<div className={`workspace-rail${dragging ? " is-dragging" : ""}`}>
 							<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={visibleSprintStart} tasks={visibleSprintTasks} />
 							{dragging ? <TaskTrash active /> : null}
@@ -437,6 +468,9 @@ function ViewToggle({ onChange, value }: { onChange: (view: ViewMode) => void; v
 			</button>
 			<button aria-label="星期 View" aria-pressed={value === "week"} onClick={() => onChange("week")} title="星期 View (2)" type="button">
 				<Icon name="list" />
+			</button>
+			<button aria-label="List View" aria-pressed={value === "list"} onClick={() => onChange("list")} title="List View (3)" type="button">
+				<Icon name="table" />
 			</button>
 		</div>
 	);

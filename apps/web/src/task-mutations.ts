@@ -29,6 +29,7 @@ export function useTaskMutations() {
 			};
 			if (!optimistic.isBacklog) addToSprint(client, optimistic);
 			if (optimistic.isBacklog) addToBacklog(client, optimistic);
+			addToAll(client, optimistic);
 			return { snapshot };
 		},
 		onError: (error, _variables, context) => {
@@ -40,7 +41,11 @@ export function useTaskMutations() {
 			toast.show("項目已同步");
 		},
 		onSettled: (_data, _error, variables) =>
-			Promise.all([client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(variables.input.sprintStart) }), client.invalidateQueries({ queryKey: queryKeys.tasks.backlog })])
+			Promise.all([
+				client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(variables.input.sprintStart) }),
+				client.invalidateQueries({ queryKey: queryKeys.tasks.backlog }),
+				client.invalidateQueries({ queryKey: queryKeys.tasks.allList })
+			])
 	});
 
 	const update = useMutation({
@@ -87,6 +92,7 @@ export function useTaskMutations() {
 			removeTask(client, taskId);
 			if (optimistic.isBacklog) addToBacklog(client, optimistic);
 			else addToSprint(client, optimistic);
+			addToAll(client, optimistic);
 			return { snapshot, oldSprint: current.sprintStart, newSprint: sprintStart };
 		},
 		onError: (error, _variables, context) => {
@@ -97,7 +103,8 @@ export function useTaskMutations() {
 		onSettled: (_data, _error, _variables, context) =>
 			Promise.all([
 				...[...new Set([context?.oldSprint, context?.newSprint].filter(Boolean))].map(sprint => client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(sprint!) })),
-				client.invalidateQueries({ queryKey: queryKeys.tasks.backlog })
+				client.invalidateQueries({ queryKey: queryKeys.tasks.backlog }),
+				client.invalidateQueries({ queryKey: queryKeys.tasks.allList })
 			])
 	});
 
@@ -119,7 +126,8 @@ export function useTaskMutations() {
 		onSettled: (_data, _error, _variables, context) =>
 			Promise.all([
 				...(context?.sprintStart ? [client.invalidateQueries({ queryKey: queryKeys.tasks.sprint(context.sprintStart) })] : []),
-				client.invalidateQueries({ queryKey: queryKeys.tasks.backlog })
+				client.invalidateQueries({ queryKey: queryKeys.tasks.backlog }),
+				client.invalidateQueries({ queryKey: queryKeys.tasks.allList })
 			])
 	});
 
@@ -149,6 +157,7 @@ function replaceTask(client: ReturnType<typeof useQueryClient>, id: string, task
 	removeTask(client, id);
 	if (task.isBacklog) addToBacklog(client, task);
 	else addToSprint(client, task);
+	addToAll(client, task);
 }
 
 function addToSprint(client: ReturnType<typeof useQueryClient>, task: Task) {
@@ -162,6 +171,10 @@ function addToBacklog(client: ReturnType<typeof useQueryClient>, task: Task) {
 	client.setQueryData<TaskListResponse>(queryKeys.tasks.backlog, old => ({
 		tasks: [...(old?.tasks ?? []).filter(candidate => candidate.id !== task.id), task]
 	}));
+}
+
+function addToAll(client: ReturnType<typeof useQueryClient>, task: Task) {
+	client.setQueryData<TaskListResponse>(queryKeys.tasks.allList, old => (old ? { tasks: [...old.tasks.filter(candidate => candidate.id !== task.id), task] } : old));
 }
 
 function messageFrom(error: unknown): string {

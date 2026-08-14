@@ -1,6 +1,6 @@
 import { addDays, sprintDays, type Category, type CreateTaskInput, type Task, type TaskStatus, type UpdateTaskInput } from "@em-todo/shared";
 
-export type ViewMode = "kanban" | "week";
+export type ViewMode = "kanban" | "list" | "week";
 
 export type PlacementTarget =
 	| { id: string; kind: "status"; label: string; status: TaskStatus }

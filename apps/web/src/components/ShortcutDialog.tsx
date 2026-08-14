@@ -5,6 +5,7 @@ const shortcuts: [string, string][] = [
 	["/", "搜尋項目"],
 	["1", "Kanban View"],
 	["2", "星期 View"],
+	["3", "List View"],
 	["T", "跳到今天"],
 	["[ / ]", "上一個／下一個 sprint"],
 	["方向鍵", "選擇項目"],

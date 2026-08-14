@@ -60,6 +60,9 @@ export function useWorkspaceKeyboard({
 			} else if (event.key === "2") {
 				event.preventDefault();
 				onSetView("week");
+			} else if (event.key === "3") {
+				event.preventDefault();
+				onSetView("list");
 			} else if (event.key.toLowerCase() === "t") {
 				event.preventDefault();
 				onToday();

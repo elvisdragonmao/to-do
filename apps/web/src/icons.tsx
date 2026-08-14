@@ -6,6 +6,7 @@ import {
 	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
+	ChevronUp,
 	CircleHelp,
 	Clock3,
 	Columns3,
@@ -24,6 +25,7 @@ import {
 	Search,
 	Settings,
 	Sun,
+	TableProperties,
 	Trash2,
 	WifiOff,
 	X,
@@ -41,6 +43,7 @@ const icons = {
 	chevronDown: ChevronDown,
 	chevronLeft: ChevronLeft,
 	chevronRight: ChevronRight,
+	chevronUp: ChevronUp,
 	clock: Clock3,
 	close: X,
 	drag: GripVertical,
@@ -59,6 +62,7 @@ const icons = {
 	settings: Settings,
 	trash: Trash2,
 	sun: Sun,
+	table: TableProperties,
 	wifiOff: WifiOff
 } satisfies Record<string, LucideIcon>;
 

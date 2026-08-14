@@ -2,13 +2,14 @@ import type { TaskListResponse } from "@em-todo/shared";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { QueryClient, queryOptions } from "@tanstack/react-query";
 
-import { createTask, deleteTask, getBacklogTasks, getCategories, getSprintTasks, updateTask } from "./api.js";
+import { createTask, deleteTask, getAllTasks, getBacklogTasks, getCategories, getSprintTasks, updateTask } from "./api.js";
 
 export const queryKeys = {
 	session: ["session"] as const,
 	categories: ["categories"] as const,
 	tasks: {
 		all: ["tasks"] as const,
+		allList: ["tasks", "all"] as const,
 		backlog: ["tasks", "backlog"] as const,
 		sprint: (sprintStart: string) => ["tasks", "sprint", sprintStart] as const
 	}
@@ -40,6 +41,13 @@ export const backlogTasksQuery = () =>
 	queryOptions({
 		queryKey: queryKeys.tasks.backlog,
 		queryFn: ({ signal }) => getBacklogTasks(signal),
+		staleTime: 30 * 1000
+	});
+
+export const allTasksQuery = () =>
+	queryOptions({
+		queryKey: queryKeys.tasks.allList,
+		queryFn: ({ signal }) => getAllTasks(signal),
 		staleTime: 30 * 1000
 	});
 

@@ -4,7 +4,7 @@ import { formatShortDate } from "../../date-format.js";
 import { Icon } from "../../icons.js";
 import { STATUS_TARGETS, tasksForTarget, weekTargets, type ViewMode } from "./workspace-model.js";
 
-export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { categories: Category[]; sprintStart: string; tasks: Task[]; view: ViewMode }) {
+export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { categories: Category[]; sprintStart: string; tasks: Task[]; view: Exclude<ViewMode, "list"> }) {
 	const targets = view === "kanban" ? STATUS_TARGETS : weekTargets(sprintStart);
 
 	return (

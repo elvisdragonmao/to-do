@@ -72,6 +72,10 @@ export async function getBacklogTasks(signal?: AbortSignal): Promise<TaskListRes
 	return request("/api/tasks/backlog", taskListResponseSchema, { signal });
 }
 
+export async function getAllTasks(signal?: AbortSignal): Promise<TaskListResponse> {
+	return request("/api/tasks/all", taskListResponseSchema, { signal });
+}
+
 export async function createTask(input: CreateTaskInput): Promise<Task> {
 	return request("/api/tasks", taskSchema, {
 		method: "POST",

@@ -26,7 +26,7 @@ type TaskBoardProps = {
 	syncStates: Map<string, SyncState>;
 	targeting: boolean;
 	tasks: Task[];
-	view: ViewMode;
+	view: Exclude<ViewMode, "list">;
 };
 
 export function TaskBoard(props: TaskBoardProps) {
