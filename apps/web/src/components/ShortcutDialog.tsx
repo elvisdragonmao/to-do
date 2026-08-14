@@ -3,20 +3,17 @@ import { AppDialog } from "./AppDialog.js";
 const shortcuts: [string, string][] = [
 	["N", "新增項目"],
 	["/", "搜尋項目"],
-	["1", "切換清單檢視"],
-	["2", "切換 Kanban"],
+	["1", "Kanban View"],
+	["2", "星期 View"],
 	["[ / ]", "上一個／下一個 sprint"],
-	["← / →", "在 sprint tabs 間移動"],
-	["↑ / ↓", "在項目間移動焦點"],
-	["Enter", "編輯焦點項目"],
-	["X", "完成／取消完成焦點項目"],
-	["?", "顯示這份快捷鍵"],
+	["方向鍵", "選擇項目"],
+	["⌘ /", "快捷鍵列表"],
 	["Esc", "關閉對話框"]
 ];
 
 export function ShortcutDialog({ onClose, open }: { onClose: () => void; open: boolean }) {
 	return (
-		<AppDialog description="不用離開鍵盤就能安排完整的一週。" onOpenChange={next => (next ? undefined : onClose())} open={open} title="鍵盤快捷鍵">
+		<AppDialog onOpenChange={next => (next ? undefined : onClose())} open={open} title="快捷鍵">
 			<dl className="shortcut-list">
 				{shortcuts.map(([keys, action]) => (
 					<div key={keys}>

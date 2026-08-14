@@ -4,6 +4,7 @@ import {
 	type CreateTaskInput,
 	type SprintTasksResponse,
 	type Task,
+	type UpdateCategoryInput,
 	type UpdateTaskInput,
 	apiErrorSchema,
 	categoriesResponseSchema,
@@ -50,6 +51,13 @@ export async function getCategories(signal?: AbortSignal): Promise<Category[]> {
 export async function createCategory(input: CreateCategoryInput): Promise<Category> {
 	return request("/api/categories", categorySchema, {
 		method: "POST",
+		body: JSON.stringify(input)
+	});
+}
+
+export async function updateCategory(categoryId: string, input: UpdateCategoryInput): Promise<Category> {
+	return request(`/api/categories/${encodeURIComponent(categoryId)}`, categorySchema, {
+		method: "PATCH",
 		body: JSON.stringify(input)
 	});
 }

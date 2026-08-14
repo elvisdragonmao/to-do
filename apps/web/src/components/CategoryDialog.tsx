@@ -8,7 +8,7 @@ import { AppDialog } from "./AppDialog.js";
 import { Spinner } from "./Spinner.js";
 import { useToast } from "./Toast.js";
 
-const COLORS = ["#755b00", "#386a20", "#00658b", "#735471", "#904a43", "#5f5e62"];
+const COLORS = ["#A69697", "#DD8406", "#DC5002", "#282421", "#5A4943", "#356A25"];
 
 export function CategoryDialog({ categories, onClose, open }: { categories: Category[]; onClose: () => void; open: boolean }) {
 	const [name, setName] = useState("");
@@ -33,7 +33,7 @@ export function CategoryDialog({ categories, onClose, open }: { categories: Cate
 	};
 
 	return (
-		<AppDialog description="每個項目都必須屬於一個分類；未選擇時會放進「未分類」。" onOpenChange={next => (next ? undefined : onClose())} open={open} title="分類">
+		<AppDialog onOpenChange={next => (next ? undefined : onClose())} open={open} title="分類">
 			<div className="category-list">
 				{categories.map(category => (
 					<div className="category-row" key={category.id}>
@@ -46,7 +46,7 @@ export function CategoryDialog({ categories, onClose, open }: { categories: Cate
 			<form className="category-form" onSubmit={submit}>
 				<label className="field">
 					<span>新增分類</span>
-					<input disabled={mutation.isPending} maxLength={40} onChange={event => setName(event.target.value)} placeholder="例如：產品、學校、生活" value={name} />
+					<input disabled={mutation.isPending} maxLength={40} onChange={event => setName(event.target.value)} value={name} />
 				</label>
 				<fieldset className="color-field">
 					<legend>顏色</legend>

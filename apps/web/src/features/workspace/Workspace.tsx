@@ -1,0 +1,391 @@
+import { isoDateSchema, startOfSprint, type CreateTaskInput, type Task, type UpdateTaskInput } from "@sprintly/shared";
+import {
+	closestCenter,
+	DndContext,
+	DragOverlay,
+	KeyboardSensor,
+	PointerSensor,
+	pointerWithin,
+	useSensor,
+	useSensors,
+	type CollisionDetection,
+	type DragEndEvent,
+	type DragOverEvent,
+	type DragStartEvent
+} from "@dnd-kit/core";
+import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
+import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+
+import { logout } from "../../api.js";
+import { CategoryDialog } from "../../components/CategoryDialog.js";
+import { ShortcutDialog } from "../../components/ShortcutDialog.js";
+import { Spinner } from "../../components/Spinner.js";
+import { SyncIndicator } from "../../components/SyncIndicator.js";
+import { formatSprintLabel } from "../../date-format.js";
+import { Icon } from "../../icons.js";
+import { categoriesQuery, persister, queryKeys, sprintTasksQuery } from "../../queries.js";
+import { useTaskMutations } from "../../task-mutations.js";
+import { useTheme } from "../../theme.js";
+import { useCategoryMutations } from "../categories/useCategoryMutations.js";
+import { MiniCalendar } from "./MiniCalendar.js";
+import type { QuickCreateValues } from "./QuickCreate.js";
+import { SprintPreviewPage } from "./SprintPreviewPage.js";
+import { TaskBoard, type DropProjection } from "./TaskBoard.js";
+import { TaskCardPreview, type SyncState } from "./TaskCard.js";
+import { WorkspaceSidebar } from "./WorkspaceSidebar.js";
+import { findDirectionalTask, useWorkspaceKeyboard } from "./useWorkspaceKeyboard.js";
+import { useSprintPager } from "./useSprintPager.js";
+import { adjacentSprint, createInputForTarget, numberedTargets, sortOrderBefore, tasksForTarget, updateForTarget, type PlacementTarget, type ViewMode } from "./workspace-model.js";
+
+const collisionDetection: CollisionDetection = args => {
+	const pointerCollisions = pointerWithin(args);
+	return pointerCollisions.length > 0 ? pointerCollisions : closestCenter(args);
+};
+
+export function Workspace() {
+	const { sprintStart: rawSprintStart = "" } = useParams();
+	const sprintStart = isoDateSchema.safeParse(rawSprintStart).success ? startOfSprint(rawSprintStart) : startOfSprint(new Date());
+	const previousSprintStart = adjacentSprint(sprintStart, -1);
+	const nextSprintStart = adjacentSprint(sprintStart, 1);
+	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
+	const tasksQuery = useQuery(sprintTasksQuery(sprintStart));
+	const previousTasksQuery = useQuery(sprintTasksQuery(previousSprintStart));
+	const nextTasksQuery = useQuery(sprintTasksQuery(nextSprintStart));
+	const categoriesResult = useQuery(categoriesQuery());
+	const taskMutations = useTaskMutations();
+	const categoryMutations = useCategoryMutations();
+	const [theme, toggleTheme] = useTheme();
+	const [view, setViewState] = useState<ViewMode>(() => (localStorage.getItem("em-todo-view") === "week" ? "week" : "kanban"));
+	const [search, setSearch] = useState("");
+	const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase("zh-TW"));
+	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+	const [targeting, setTargeting] = useState(false);
+	const [activeTarget, setActiveTarget] = useState<PlacementTarget | null>(null);
+	const [activeTask, setActiveTask] = useState<Task | null>(null);
+	const [projection, setProjection] = useState<DropProjection>(null);
+	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const [categoriesOpen, setCategoriesOpen] = useState(false);
+	const [shortcutsOpen, setShortcutsOpen] = useState(false);
+	const searchRef = useRef<HTMLInputElement>(null);
+	const workspaceRef = useRef<HTMLElement>(null);
+	const tasks = tasksQuery.data?.tasks ?? [];
+	const categories = categoriesResult.data ?? [];
+	const uncategorized = categories.find(category => category.isDefault)?.id ?? categories[0]?.id ?? "uncategorized";
+	const numbered = useMemo(() => numberedTargets(view, sprintStart, categories), [categories, sprintStart, view]);
+	const syncStates = useSyncStates();
+	const searchMatches = useMemo(() => {
+		if (!deferredSearch) return null;
+		return new Set(
+			tasks
+				.filter(task => {
+					const category = categories.find(item => item.id === task.categoryId)?.name ?? "";
+					return `${task.title} ${task.description} ${category}`.toLocaleLowerCase("zh-TW").includes(deferredSearch);
+				})
+				.map(task => task.id)
+		);
+	}, [categories, deferredSearch, tasks]);
+
+	const setView = useCallback((next: ViewMode) => {
+		startTransition(() => setViewState(next));
+		localStorage.setItem("em-todo-view", next);
+		setActiveTarget(null);
+		setTargeting(false);
+	}, []);
+	const goToSprint = useCallback((next: string) => navigate(`/app/sprint/${next}`), [navigate]);
+	const goPreviousSprint = useCallback(() => goToSprint(previousSprintStart), [goToSprint, previousSprintStart]);
+	const goNextSprint = useCallback(() => goToSprint(nextSprintStart), [goToSprint, nextSprintStart]);
+	const goRelative = useSprintPager(workspaceRef, sprintStart, goPreviousSprint, goNextSprint);
+	const selectSprint = useCallback(
+		(next: string) => {
+			if (next === previousSprintStart) goRelative(-1);
+			else if (next === nextSprintStart) goRelative(1);
+			else goToSprint(next);
+		},
+		[goRelative, goToSprint, nextSprintStart, previousSprintStart]
+	);
+	const selectTask = useCallback((taskId: string, focus = false) => {
+		setSelectedTaskId(taskId);
+		if (focus) {
+			requestAnimationFrame(() => {
+				const element = document.querySelector<HTMLElement>(`[data-task-card][data-task-id="${CSS.escape(taskId)}"]`);
+				element?.focus({ preventScroll: true });
+				element?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+			});
+		}
+	}, []);
+	const focusSearch = useCallback(() => {
+		setSidebarOpen(true);
+		requestAnimationFrame(() => searchRef.current?.focus());
+	}, []);
+	const beginTargeting = useCallback(() => {
+		setActiveTarget(null);
+		setSidebarOpen(view === "kanban");
+		setTargeting(true);
+	}, [view]);
+	const chooseNumberedTarget = useCallback(
+		(key: string) => {
+			const target = numbered.find(item => item.key === key);
+			if (!target) return false;
+			setActiveTarget(target);
+			setTargeting(false);
+			if (target.kind !== "category") setSidebarOpen(false);
+			return true;
+		},
+		[numbered]
+	);
+	const startCreate = useCallback((target: PlacementTarget) => {
+		setActiveTarget(target);
+		setTargeting(false);
+	}, []);
+	const cancelCreate = useCallback(() => {
+		setActiveTarget(null);
+		setTargeting(false);
+	}, []);
+	const createTask = useCallback(
+		(target: PlacementTarget, values: QuickCreateValues) => {
+			const input: CreateTaskInput = createInputForTarget({ ...values, categoryId: uncategorized, sprintStart, target });
+			taskMutations.create.mutate({ input, optimisticId: `optimistic-${crypto.randomUUID()}` });
+			setActiveTarget(null);
+			setTargeting(false);
+		},
+		[sprintStart, taskMutations.create, uncategorized]
+	);
+	const updateTask = useCallback((taskId: string, input: UpdateTaskInput) => taskMutations.update.mutate({ taskId, input }), [taskMutations.update]);
+	const moveSelection = useCallback(
+		(direction: "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight") => {
+			const target = findDirectionalTask(selectedTaskId, direction);
+			if (target?.dataset.taskId) selectTask(target.dataset.taskId, true);
+		},
+		[selectTask, selectedTaskId]
+	);
+
+	useWorkspaceKeyboard({
+		onCreate: beginTargeting,
+		onEscape: () => {
+			setActiveTarget(null);
+			setTargeting(false);
+			setSidebarOpen(false);
+			setCategoriesOpen(false);
+			setShortcutsOpen(false);
+		},
+		onFocusSearch: focusSearch,
+		onMoveSelection: moveSelection,
+		onNextSprint: () => goRelative(1),
+		onOpenShortcuts: () => setShortcutsOpen(true),
+		onPreviousSprint: () => goRelative(-1),
+		onSelectTarget: chooseNumberedTarget,
+		onSetView: setView,
+		targeting
+	});
+	useEffect(() => {
+		if (!deferredSearch) return;
+		const match = tasks.find(task => searchMatches?.has(task.id));
+		if (match) selectTask(match.id, true);
+	}, [deferredSearch, searchMatches, selectTask, tasks]);
+	useEffect(() => {
+		const mobile = window.matchMedia("(max-width: 839px)");
+		const closeOnMobile = (event: MediaQueryListEvent) => {
+			if (event.matches) setSidebarOpen(false);
+		};
+		mobile.addEventListener("change", closeOnMobile);
+		return () => mobile.removeEventListener("change", closeOnMobile);
+	}, []);
+	useEffect(() => {
+		if (searchParams.get("action") === "new") {
+			beginTargeting();
+			setSearchParams({}, { replace: true });
+		}
+	}, [beginTargeting, searchParams, setSearchParams]);
+
+	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
+	const setProjectionFromOver = (event: DragOverEvent | DragEndEvent) => {
+		const data = event.over?.data.current as { target?: PlacementTarget; beforeTaskId?: string } | undefined;
+		return data?.target ? { target: data.target, ...(data.beforeTaskId ? { beforeTaskId: data.beforeTaskId } : {}) } : null;
+	};
+	const handleDragOver = (event: DragOverEvent) => setProjection(setProjectionFromOver(event));
+	const handleDragEnd = (event: DragEndEvent) => {
+		const task = event.active.data.current?.task as Task | undefined;
+		const next = setProjectionFromOver(event);
+		setActiveTask(null);
+		setProjection(null);
+		if (!task || !next) return;
+		const destination = tasksForTarget(
+			tasks.filter(candidate => candidate.id !== task.id),
+			next.target
+		);
+		const sortOrder = sortOrderBefore(destination, next.beforeTaskId);
+		updateTask(task.id, updateForTarget(task, next.target, sortOrder));
+	};
+
+	if (sprintStart !== rawSprintStart) return <Navigate replace to={`/app/sprint/${sprintStart}`} />;
+
+	return (
+		<DndContext
+			collisionDetection={collisionDetection}
+			onDragCancel={() => {
+				setActiveTask(null);
+				setProjection(null);
+			}}
+			onDragEnd={handleDragEnd}
+			onDragOver={handleDragOver}
+			onDragStart={(event: DragStartEvent) => setActiveTask(event.active.data.current?.task as Task)}
+			sensors={sensors}
+		>
+			<div className="app-shell">
+				<WorkspaceSidebar
+					activeTarget={activeTarget}
+					categories={categories}
+					numbered={numbered}
+					onAddCategory={() => setCategoriesOpen(true)}
+					onCancelCreate={cancelCreate}
+					onChangeCategoryColor={(categoryId, color) => categoryMutations.updateColor.mutate({ categoryId, color })}
+					onClose={() => setSidebarOpen(false)}
+					onCreate={createTask}
+					onSearch={setSearch}
+					onSelectTask={taskId => {
+						setSidebarOpen(false);
+						selectTask(taskId, true);
+					}}
+					onStartCreate={startCreate}
+					open={sidebarOpen}
+					projection={projection}
+					search={search}
+					searchRef={searchRef}
+					targeting={targeting}
+					tasks={tasks}
+				/>
+
+				<main aria-label="Sprint" className="workspace" ref={workspaceRef}>
+					<SprintPreviewPage categories={categories} sprintStart={previousSprintStart} tasks={previousTasksQuery.data?.tasks ?? []} view={view} />
+					<section className="sprint-page sprint-page--current">
+						<header className="top-app-bar">
+							<button aria-label="開啟 Backlog" className="mobile-menu" onClick={() => setSidebarOpen(true)} type="button">
+								<Icon name="menu" />
+							</button>
+							<h1>{formatSprintLabel(sprintStart)}</h1>
+							<SyncIndicator />
+							<ViewToggle onChange={setView} value={view} />
+							<button aria-label="新增項目" className="mobile-create" onClick={beginTargeting} title="新增項目 (N)" type="button">
+								<Icon name="add" />
+							</button>
+						</header>
+
+						<div className="workspace-body">
+							<section className="board-region">
+								{tasksQuery.isPending && !tasksQuery.data ? (
+									<div aria-busy="true" className="content-state">
+										<Spinner label="載入中" />
+									</div>
+								) : tasksQuery.isError && !tasksQuery.data ? (
+									<div className="content-state" role="alert">
+										<p>{tasksQuery.error.message}</p>
+										<button className="button button--filled-tonal" onClick={() => tasksQuery.refetch()} type="button">
+											重試
+										</button>
+									</div>
+								) : (
+									<TaskBoard
+										activeTarget={activeTarget}
+										categories={categories}
+										numbered={numbered}
+										onCancelCreate={cancelCreate}
+										onCreate={createTask}
+										onDelete={taskId => taskMutations.remove.mutate({ taskId })}
+										onSelect={taskId => selectTask(taskId)}
+										onStartCreate={startCreate}
+										onUpdate={updateTask}
+										projection={projection}
+										searchMatches={searchMatches}
+										selectedTaskId={selectedTaskId}
+										sprintStart={sprintStart}
+										syncStates={syncStates}
+										targeting={targeting}
+										tasks={tasks}
+										view={view}
+									/>
+								)}
+							</section>
+							<MiniCalendar onSelectSprint={selectSprint} sprintStart={sprintStart} tasks={tasks} />
+						</div>
+					</section>
+					<SprintPreviewPage categories={categories} sprintStart={nextSprintStart} tasks={nextTasksQuery.data?.tasks ?? []} view={view} />
+					<UtilityDock onHelp={() => setShortcutsOpen(true)} onTheme={toggleTheme} theme={theme} />
+				</main>
+			</div>
+
+			<CategoryDialog categories={categories} onClose={() => setCategoriesOpen(false)} open={categoriesOpen} />
+			<ShortcutDialog onClose={() => setShortcutsOpen(false)} open={shortcutsOpen} />
+			<DragOverlay dropAnimation={{ duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
+				{activeTask ? <TaskCardPreview category={categories.find(category => category.id === activeTask.categoryId)} task={activeTask} /> : null}
+			</DragOverlay>
+		</DndContext>
+	);
+}
+
+function ViewToggle({ onChange, value }: { onChange: (view: ViewMode) => void; value: ViewMode }) {
+	return (
+		<div aria-label="切換 View" className="view-toggle" role="group">
+			<button aria-label="Kanban View" aria-pressed={value === "kanban"} onClick={() => onChange("kanban")} title="Kanban View (1)" type="button">
+				<Icon name="board" />
+			</button>
+			<button aria-label="星期 View" aria-pressed={value === "week"} onClick={() => onChange("week")} title="星期 View (2)" type="button">
+				<Icon name="list" />
+			</button>
+		</div>
+	);
+}
+
+function UtilityDock({ onHelp, onTheme, theme }: { onHelp: () => void; onTheme: () => void; theme: "light" | "dark" }) {
+	return (
+		<div className="utility-dock">
+			<button aria-label="快捷鍵" onClick={onHelp} title="快捷鍵 (⌘/)" type="button">
+				<Icon name="help" />
+				<span>Help</span>
+			</button>
+			<button aria-label={theme === "dark" ? "切換亮色" : "切換暗色"} onClick={onTheme} type="button">
+				<Icon name={theme === "dark" ? "sun" : "moon"} />
+			</button>
+			<LogoutButton />
+		</div>
+	);
+}
+
+function LogoutButton() {
+	const client = useQueryClient();
+	const mutation = useMutation({
+		mutationFn: logout,
+		onSuccess: async () => {
+			client.clear();
+			await persister.removeClient();
+			window.location.assign("/login");
+		}
+	});
+	return (
+		<button aria-label="登出" disabled={mutation.isPending} onClick={() => mutation.mutate()} type="button">
+			{mutation.isPending ? <Spinner label="登出中" size="small" /> : <Icon name="logout" />}
+		</button>
+	);
+}
+
+function useSyncStates(): Map<string, SyncState> {
+	const pending = useMutationState({
+		filters: { status: "pending" },
+		select: mutation => ({
+			isPaused: mutation.state.isPaused,
+			key: mutation.options.mutationKey,
+			variables: mutation.state.variables as { taskId?: string; optimisticId?: string } | undefined
+		})
+	});
+	return useMemo(() => {
+		const states = new Map<string, SyncState>();
+		for (const mutation of pending) {
+			const id = mutation.variables?.taskId ?? mutation.variables?.optimisticId;
+			if (!id) continue;
+			const deleting = mutation.key?.[1] === "delete";
+			states.set(id, mutation.isPaused ? "queued" : deleting ? "deleting" : "syncing");
+		}
+		return states;
+	}, [pending]);
+}

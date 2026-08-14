@@ -17,7 +17,8 @@ export const mutationKeys = {
 	createTask: ["tasks", "create"] as const,
 	updateTask: ["tasks", "update"] as const,
 	deleteTask: ["tasks", "delete"] as const,
-	createCategory: ["categories", "create"] as const
+	createCategory: ["categories", "create"] as const,
+	updateCategory: ["categories", "update"] as const
 };
 
 export const categoriesQuery = () =>

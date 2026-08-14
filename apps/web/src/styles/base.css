@@ -1,0 +1,95 @@
+* {
+	box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+	height: 100%;
+	margin: 0;
+}
+
+body {
+	background: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-ref-typeface-plain);
+	font-size: var(--md-sys-typescale-body-large-size);
+	line-height: var(--md-sys-typescale-body-large-line-height);
+	overflow: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+	color: inherit;
+	font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+	-webkit-tap-highlight-color: transparent;
+}
+
+button {
+	border: 0;
+}
+
+button:not(:disabled),
+a,
+select:not(:disabled),
+input[type="color"]:not(:disabled) {
+	cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+	cursor: not-allowed;
+	opacity: 0.56;
+}
+
+:focus-visible {
+	outline: 3px solid var(--md-sys-color-primary);
+	outline-offset: 2px;
+}
+
+::selection {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.sr-only,
+.sr-only:not(:focus) {
+	clip: rect(0 0 0 0);
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	white-space: nowrap;
+	width: 1px;
+}
+
+.app-splash {
+	align-items: center;
+	background: var(--md-sys-color-surface);
+	display: grid;
+	height: 100%;
+	justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 1ms !important;
+		animation-iteration-count: 1 !important;
+		scroll-behavior: auto !important;
+		transition-duration: 1ms !important;
+	}
+}

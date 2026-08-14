@@ -7,7 +7,10 @@ import { registerSW } from "virtual:pwa-register";
 
 import { App } from "./App.js";
 import { persistOptions, queryClient } from "./queries.js";
+import { initializeTheme } from "./theme.js";
 import "./styles.css";
+
+initializeTheme();
 
 onlineManager.setEventListener(setOnline => {
 	const update = () => setOnline(navigator.onLine);
