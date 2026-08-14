@@ -35,7 +35,7 @@ import { TaskBoard, type DropProjection } from "./TaskBoard.js";
 import { TaskCardPreview, type SyncState } from "./TaskCard.js";
 import { WorkspaceSidebar } from "./WorkspaceSidebar.js";
 import { findDirectionalTask, useWorkspaceKeyboard } from "./useWorkspaceKeyboard.js";
-import { useSprintPager } from "./useSprintPager.js";
+import { useSprintPager, type SprintPagerDirection } from "./useSprintPager.js";
 import { adjacentSprint, createInputForTarget, numberedTargets, sortOrderBefore, tasksForTarget, updateForTarget, type PlacementTarget, type ViewMode } from "./workspace-model.js";
 
 const collisionDetection: CollisionDetection = args => {
@@ -68,10 +68,13 @@ export function Workspace() {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [categoriesOpen, setCategoriesOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
+	const [calendarDirection, setCalendarDirection] = useState<SprintPagerDirection>(0);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const pagerRef = useRef<HTMLElement>(null);
 	const tasks = tasksQuery.data?.tasks ?? [];
 	const categories = categoriesResult.data ?? [];
+	const calendarSprintStart = calendarDirection === 0 ? sprintStart : adjacentSprint(sprintStart, calendarDirection);
+	const calendarTasks = calendarDirection < 0 ? (previousTasksQuery.data?.tasks ?? []) : calendarDirection > 0 ? (nextTasksQuery.data?.tasks ?? []) : tasks;
 	const uncategorized = categories.find(category => category.isDefault)?.id ?? categories[0]?.id ?? "uncategorized";
 	const numbered = useMemo(() => numberedTargets(view, sprintStart, categories), [categories, sprintStart, view]);
 	const syncStates = useSyncStates();
@@ -96,12 +99,13 @@ export function Workspace() {
 	const goToSprint = useCallback((next: string) => navigate(`/app/sprint/${next}`), [navigate]);
 	const goPreviousSprint = useCallback(() => goToSprint(previousSprintStart), [goToSprint, previousSprintStart]);
 	const goNextSprint = useCallback(() => goToSprint(nextSprintStart), [goToSprint, nextSprintStart]);
-	const goRelative = useSprintPager(pagerRef, sprintStart, goPreviousSprint, goNextSprint);
+	const goRelative = useSprintPager(pagerRef, sprintStart, goPreviousSprint, goNextSprint, setCalendarDirection);
 	const forwardChromeWheel = useCallback((event: ReactWheelEvent<HTMLElement>) => {
 		const pager = pagerRef.current;
 		if (!pager || pager.contains(event.target as Node) || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
 		const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 32 : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? pager.clientHeight : 1;
-		pager.scrollBy({ behavior: "auto", top: event.deltaY * scale });
+		const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		pager.scrollBy({ behavior: reducedMotion ? "auto" : "smooth", top: event.deltaY * scale });
 	}, []);
 	const selectSprint = useCallback(
 		(next: string) => {
@@ -315,7 +319,7 @@ export function Workspace() {
 							</section>
 							<SprintPreviewPage categories={categories} sprintStart={nextSprintStart} tasks={nextTasksQuery.data?.tasks ?? []} view={view} />
 						</section>
-						<MiniCalendar onSelectSprint={selectSprint} sprintStart={sprintStart} tasks={tasks} />
+						<MiniCalendar onSelectSprint={selectSprint} sprintStart={calendarSprintStart} tasks={calendarTasks} />
 					</div>
 					<UtilityDock onHelp={() => setShortcutsOpen(true)} onTheme={toggleTheme} theme={theme} />
 				</main>
