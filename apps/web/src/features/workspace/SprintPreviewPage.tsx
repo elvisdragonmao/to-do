@@ -1,7 +1,7 @@
 import type { Category, Task } from "@em-todo/shared";
 
-import { formatShortDate } from "../../date-format.js";
 import { Icon } from "../../icons.js";
+import { TaskCardPreview } from "./components/task-card/TaskCardPreview.js";
 import { STATUS_TARGETS, tasksForTarget, weekTargets, type ViewMode } from "./workspace-model.js";
 
 export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { categories: Category[]; sprintStart: string; tasks: Task[]; view: Exclude<ViewMode, "list"> }) {
@@ -25,7 +25,7 @@ export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { ca
 							</header>
 							<div className="board-column__tasks">
 								{previewTasks.map(task => (
-									<PreviewTaskCard category={categories.find(category => category.id === task.categoryId)} key={task.id} task={task} />
+									<TaskCardPreview category={categories.find(category => category.id === task.categoryId)} key={task.id} pagerPreview task={task} />
 								))}
 								{previewTasks.length === 0 ? (
 									<div aria-hidden="true" className="empty-column">
@@ -39,27 +39,5 @@ export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { ca
 				})}
 			</div>
 		</section>
-	);
-}
-
-function PreviewTaskCard({ category, task }: { category: Category | undefined; task: Task }) {
-	return (
-		<article className={`task-card task-card--pager-preview urgency-${task.urgency}${task.status === "DONE" ? " task-card--done" : ""}`}>
-			<header className="task-card__header">
-				<strong className="task-card__title-preview">{task.title}</strong>
-				<span className="urgency-flag">
-					<Icon name="flag" />
-				</span>
-			</header>
-			{task.description ? <p className="task-card__description-preview">{task.description}</p> : null}
-			<div className="task-card__preview-meta">
-				<span>
-					<i style={{ backgroundColor: category?.color ?? "var(--md-sys-color-outline)" }} />
-					{category?.name ?? "未分類"}
-				</span>
-				{task.estimatedHours === null ? null : <span>{task.estimatedHours}h</span>}
-				{task.dueDate ? <span>{formatShortDate(task.dueDate)}</span> : null}
-			</div>
-		</article>
 	);
 }

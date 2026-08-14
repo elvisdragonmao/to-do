@@ -1,9 +1,9 @@
 import type { Category, Task } from "@em-todo/shared";
 import { useMemo, useState, type ReactNode } from "react";
 
-import { formatShortDate } from "../../date-format.js";
+import { formatShortDate } from "../../shared/utils/date-format.js";
 import { Icon } from "../../icons.js";
-import type { SyncState } from "./TaskCard.js";
+import type { SyncState } from "./types/task.js";
 import { sortTasks, type TaskSortDirection, type TaskSortKey } from "./task-list-model.js";
 
 const STATUS_LABELS: Record<Task["status"], string> = {

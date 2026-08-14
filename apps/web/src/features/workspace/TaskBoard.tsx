@@ -2,10 +2,11 @@ import type { Category, Task, UpdateTaskInput } from "@em-todo/shared";
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 
-import { formatDay } from "../../date-format.js";
+import { formatDay } from "../../shared/utils/date-format.js";
 import { Icon } from "../../icons.js";
 import { QuickCreate, type QuickCreateValues } from "./QuickCreate.js";
-import { TaskCard, type SyncState } from "./TaskCard.js";
+import { TaskCard } from "./components/task-card/TaskCard.js";
+import type { SyncState } from "./types/task.js";
 import { STATUS_TARGETS, tasksForTarget, weekTargets, type NumberedTarget, type PlacementTarget, type ViewMode } from "./workspace-model.js";
 
 export type DropProjection = { target: PlacementTarget; beforeTaskId?: string } | null;

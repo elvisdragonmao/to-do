@@ -3,11 +3,11 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { ReactNode, RefObject } from "react";
 
 import { CategoryColorMenu } from "../categories/CategoryColorMenu.js";
-import { formatShortDate } from "../../date-format.js";
+import { formatShortDate } from "../../shared/utils/date-format.js";
 import { Icon } from "../../icons.js";
 import { QuickCreate, type QuickCreateValues } from "./QuickCreate.js";
 import type { DropProjection } from "./TaskBoard.js";
-import type { SyncState } from "./TaskCard.js";
+import type { SyncState } from "./types/task.js";
 import { tasksForTarget, type NumberedTarget, type PlacementTarget } from "./workspace-model.js";
 
 type WorkspaceSidebarProps = {

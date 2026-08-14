@@ -2,7 +2,7 @@ import { addDays, startOfSprint, type Task } from "@em-todo/shared";
 import { useDroppable } from "@dnd-kit/core";
 import { useEffect, useState, type CSSProperties } from "react";
 
-import { calendarGrid, formatMonth, sameMonth } from "../../date-format.js";
+import { calendarGrid, formatMonth, sameMonth } from "../../shared/utils/date-format.js";
 import { Icon } from "../../icons.js";
 import type { PlacementTarget } from "./workspace-model.js";
 
