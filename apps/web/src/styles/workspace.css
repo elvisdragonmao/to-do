@@ -358,7 +358,7 @@
 	gap: var(--space-5);
 	grid-template-columns: minmax(0, 1fr) 176px;
 	margin: 0 auto;
-	max-width: 1240px;
+	max-width: 1600px;
 	min-height: 0;
 	overflow: hidden;
 	padding: var(--space-5);
@@ -382,8 +382,8 @@
 }
 
 .task-board--week {
-	grid-auto-columns: minmax(272px, 308px);
-	grid-auto-flow: column;
+	grid-template-columns: repeat(4, minmax(220px, 1fr));
+	grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
 .board-column {

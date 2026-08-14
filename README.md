@@ -5,7 +5,7 @@
 ## 功能
 
 - Kanban View：`To Do`、`In Progress`、`Done`。
-- 星期 View：`Inbox`、Monday 到 Sunday。
+- 星期 View：`Inbox`、Monday 到 Sunday，以 4×2 日格充分使用桌面寬度，窄螢幕可水平捲動。
 - Backlog：跨所有 sprint 顯示尚未進入 `Done` 的項目，並依分類整理。
 - 垂直 sprint pager：只有項目看板上下連續滾動，週與週之間保留 16px gap；慢滑時逐週停靠，高速滑動會保留原生慣性並跨越多週，放開後再用 scroll snap 對齊；日期列、View 控制與工具列固定在 viewport。
 - 右側固定月份行事曆：瀏覽器決定下一個 snap target 時，同一根週選取 bar 就會以 `translateY` 同步移動；整週完成時顯示冰藍狀態色。
