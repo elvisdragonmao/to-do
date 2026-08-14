@@ -243,13 +243,16 @@
 }
 
 .sprint-pager {
+	background: var(--md-sys-color-surface-dim);
 	display: flex;
 	flex-direction: column;
+	gap: var(--space-4);
 	height: 100%;
 	min-height: 0;
 	min-width: 0;
 	overflow-y: auto;
 	overscroll-behavior-y: contain;
+	position: relative;
 	scroll-snap-type: y mandatory;
 	scrollbar-width: none;
 }
@@ -263,6 +266,7 @@
 }
 
 .sprint-page {
+	background: var(--md-sys-color-surface);
 	display: flex;
 	flex: 0 0 100%;
 	flex-direction: column;
@@ -876,6 +880,7 @@
 	background: var(--md-sys-color-surface-container-low);
 	border-radius: var(--md-sys-shape-corner-large);
 	display: grid;
+	font-family: var(--md-ref-typeface-plain);
 	gap: var(--space-3);
 	padding: var(--space-3);
 	position: relative;
@@ -886,7 +891,17 @@
 	display: grid;
 	font-size: var(--md-sys-typescale-label-medium-size);
 	grid-template-columns: 32px 1fr 32px;
+	line-height: 1;
+	min-height: 32px;
 	text-align: center;
+}
+
+.mini-calendar__month {
+	align-items: center;
+	display: flex;
+	height: 32px;
+	justify-content: center;
+	line-height: 1;
 }
 
 .mini-calendar__arrow {
@@ -918,12 +933,21 @@
 	border-radius: var(--md-sys-shape-corner-extra-small);
 	display: flex;
 	font-size: 0.625rem;
+	font-variant-numeric: tabular-nums;
 	height: 20px;
 	justify-content: center;
+	line-height: 1;
 	min-width: 0;
 	padding: 0;
 	position: relative;
 	z-index: 1;
+}
+
+.mini-calendar__weekday > span,
+.mini-calendar__grid button > span {
+	display: block;
+	line-height: 1;
+	transform: translateY(-1px);
 }
 
 .mini-calendar__weekday {
@@ -950,8 +974,8 @@
 	pointer-events: none;
 	position: absolute;
 	right: 0;
-	top: 24px;
-	transform: translateY(calc(var(--calendar-week) * 24px));
+	top: 21px;
+	transform: translateY(calc(var(--calendar-week) * 22px));
 	transition:
 		transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized),
 		background-color var(--md-sys-motion-duration-short);

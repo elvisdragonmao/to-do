@@ -16,12 +16,12 @@ export function MiniCalendar({ interactive = true, onSelectSprint, sprintStart, 
 	const gridStyle = { "--calendar-week": selectedWeek } as CSSProperties;
 
 	return (
-		<section aria-label="月份" className="mini-calendar">
+		<section aria-label="月份" className="mini-calendar" data-sprint-start={sprintStart}>
 			<header>
 				<button aria-label="上個月" className="mini-calendar__arrow" disabled={!interactive} onClick={() => setAnchor(changeMonth(anchor, -1))} type="button">
 					<Icon name="chevronLeft" />
 				</button>
-				<strong>{formatMonth(anchor)}</strong>
+				<strong className="mini-calendar__month">{formatMonth(anchor)}</strong>
 				<button aria-label="下個月" className="mini-calendar__arrow" disabled={!interactive} onClick={() => setAnchor(changeMonth(anchor, 1))} type="button">
 					<Icon name="chevronRight" />
 				</button>
@@ -29,7 +29,7 @@ export function MiniCalendar({ interactive = true, onSelectSprint, sprintStart, 
 			<div className={`mini-calendar__grid${cleared ? " is-cleared" : ""}`} role="grid" style={gridStyle}>
 				{WEEKDAYS.map((day, index) => (
 					<span aria-hidden="true" className="mini-calendar__weekday" key={`${day}-${index}`}>
-						{day}
+						<span>{day}</span>
 					</span>
 				))}
 				<span aria-hidden="true" className="mini-calendar__selection" />
@@ -46,7 +46,7 @@ export function MiniCalendar({ interactive = true, onSelectSprint, sprintStart, 
 							role="gridcell"
 							type="button"
 						>
-							{Number(date.slice(8))}
+							<span>{Number(date.slice(8))}</span>
 						</button>
 					);
 				})}
