@@ -1,4 +1,4 @@
-import { type CreateTaskInput, type SprintTasksResponse, type Task, type UpdateTaskInput, resolvePlacementHistory } from "@sprintly/shared";
+import { type CreateTaskInput, type SprintTasksResponse, type Task, type UpdateTaskInput, resolvePlacementHistory } from "@em-todo/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { createTask, deleteTask, updateTask } from "./api.js";

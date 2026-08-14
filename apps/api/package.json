@@ -1,5 +1,5 @@
 {
-	"name": "@sprintly/api",
+	"name": "@em-todo/api",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
@@ -11,10 +11,10 @@
 		"typecheck": "tsc -p tsconfig.json"
 	},
 	"dependencies": {
+		"@em-todo/shared": "workspace:*",
 		"@fastify/cookie": "^11.1.2",
 		"@fastify/rate-limit": "^11.2.0",
 		"@fastify/static": "^10.1.3",
-		"@sprintly/shared": "workspace:*",
 		"fastify": "^5.11.3",
 		"zod": "catalog:"
 	},

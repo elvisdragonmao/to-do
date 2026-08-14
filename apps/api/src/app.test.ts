@@ -1,10 +1,10 @@
-import { addDays, startOfSprint } from "@sprintly/shared";
+import { addDays, startOfSprint } from "@em-todo/shared";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createApp } from "./app.js";
 
-describe("Sprintly API", () => {
+describe("EM's To Do API", () => {
 	let app: FastifyInstance;
 	let cookie: string;
 
@@ -45,7 +45,7 @@ describe("Sprintly API", () => {
 		const created = await app.inject({
 			method: "POST",
 			url: "/api/tasks",
-			headers: { cookie, "x-sprintly-request": "web" },
+			headers: { cookie, "x-em-todo-request": "web" },
 			payload: {
 				title: "完成 PWA",
 				description: "https://web.dev/learn/pwa/",
@@ -66,7 +66,7 @@ describe("Sprintly API", () => {
 		const moved = await app.inject({
 			method: "PATCH",
 			url: `/api/tasks/${created.json().id}`,
-			headers: { cookie, "x-sprintly-request": "web" },
+			headers: { cookie, "x-em-todo-request": "web" },
 			payload: {
 				version: 1,
 				sprintStart,
@@ -80,7 +80,7 @@ describe("Sprintly API", () => {
 		const movedAgain = await app.inject({
 			method: "PATCH",
 			url: `/api/tasks/${created.json().id}`,
-			headers: { cookie, "x-sprintly-request": "web" },
+			headers: { cookie, "x-em-todo-request": "web" },
 			payload: {
 				version: 2,
 				sprintStart: nextSprint,
@@ -93,7 +93,7 @@ describe("Sprintly API", () => {
 		const completed = await app.inject({
 			method: "PATCH",
 			url: `/api/tasks/${created.json().id}`,
-			headers: { cookie, "x-sprintly-request": "web" },
+			headers: { cookie, "x-em-todo-request": "web" },
 			payload: { version: 3, status: "DONE" }
 		});
 		expect(completed.json().completedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -101,7 +101,7 @@ describe("Sprintly API", () => {
 		const reopened = await app.inject({
 			method: "PATCH",
 			url: `/api/tasks/${created.json().id}`,
-			headers: { cookie, "x-sprintly-request": "web" },
+			headers: { cookie, "x-em-todo-request": "web" },
 			payload: { version: 4, status: "DOING" }
 		});
 		expect(reopened.json().completedDate).toBeNull();
@@ -111,19 +111,33 @@ describe("Sprintly API", () => {
 		const created = await app.inject({
 			method: "POST",
 			url: "/api/categories",
-			headers: { cookie, "x-sprintly-request": "web" },
+			headers: { cookie, "x-em-todo-request": "web" },
 			payload: { name: "Study", color: "#DD8406" }
 		});
 
 		const updated = await app.inject({
 			method: "PATCH",
 			url: `/api/categories/${created.json().id}`,
-			headers: { cookie, "x-sprintly-request": "web" },
+			headers: { cookie, "x-em-todo-request": "web" },
 			payload: { color: "#DC5002" }
 		});
 
 		expect(updated.statusCode).toBe(200);
 		expect(updated.json()).toMatchObject({ name: "Study", color: "#DC5002" });
+	});
+
+	it("returns a conflict for duplicate category names", async () => {
+		const request = () =>
+			app.inject({
+				method: "POST",
+				url: "/api/categories",
+				headers: { cookie, "x-em-todo-request": "web" },
+				payload: { name: "Study", color: "#DD8406" }
+			});
+		expect((await request()).statusCode).toBe(201);
+		const duplicate = await request();
+		expect(duplicate.statusCode).toBe(409);
+		expect(duplicate.json().error.code).toBe("ALREADY_EXISTS");
 	});
 
 	it("rejects stale writes and untrusted mutations", async () => {
@@ -155,13 +169,13 @@ describe("Sprintly API", () => {
 		const created = await app.inject({
 			method: "POST",
 			url: "/api/tasks",
-			headers: { cookie, "x-sprintly-request": "web" },
+			headers: { cookie, "x-em-todo-request": "web" },
 			payload
 		});
 		const stale = await app.inject({
 			method: "PATCH",
 			url: `/api/tasks/${created.json().id}`,
-			headers: { cookie, "x-sprintly-request": "web" },
+			headers: { cookie, "x-em-todo-request": "web" },
 			payload: { version: 999, title: "不應覆寫" }
 		});
 		expect(stale.statusCode).toBe(409);

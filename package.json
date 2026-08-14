@@ -1,13 +1,13 @@
 {
-	"name": "sprintly",
+	"name": "em-to-do",
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"build": "pnpm --filter @sprintly/shared build && pnpm --filter @sprintly/web build && pnpm --filter @sprintly/api build",
-		"dev": "pnpm --filter @sprintly/shared build && concurrently -k -n API,WEB -c blue,magenta \"pnpm --filter @sprintly/api dev\" \"pnpm --filter @sprintly/web dev\"",
+		"build": "pnpm --filter @em-todo/shared build && pnpm --filter @em-todo/web build && pnpm --filter @em-todo/api build",
+		"dev": "pnpm --filter @em-todo/shared build && concurrently -k -n API,WEB -c blue,magenta \"pnpm --filter @em-todo/api dev\" \"pnpm --filter @em-todo/web dev\"",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"start": "pnpm --filter @sprintly/api start",
+		"start": "pnpm --filter @em-todo/api start",
 		"test": "pnpm -r --if-present test",
 		"typecheck": "pnpm -r --if-present typecheck"
 	},

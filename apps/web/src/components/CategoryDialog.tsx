@@ -1,4 +1,4 @@
-import { type Category, createCategorySchema } from "@sprintly/shared";
+import { type Category, createCategorySchema } from "@em-todo/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 

@@ -1,4 +1,4 @@
-import { addDays } from "@sprintly/shared";
+import { addDays } from "@em-todo/shared";
 
 const weekdayFormatter = new Intl.DateTimeFormat("zh-TW", {
 	weekday: "short",

@@ -1,4 +1,4 @@
-import type { Category, Task, UpdateTaskInput } from "@sprintly/shared";
+import type { Category, Task, UpdateTaskInput } from "@em-todo/shared";
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 

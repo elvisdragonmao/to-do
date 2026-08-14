@@ -12,7 +12,7 @@ COPY packages/shared packages/shared
 COPY apps/api apps/api
 COPY apps/web apps/web
 RUN pnpm build
-RUN pnpm deploy --filter @sprintly/api --prod /prod/api
+RUN pnpm deploy --filter @em-todo/api --prod /prod/api
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production
@@ -24,6 +24,6 @@ COPY --from=build /app/apps/web/dist ./web
 RUN mkdir -p /app/data && chown -R node:node /app
 USER node
 EXPOSE 3000
-ENV DATABASE_PATH=/app/data/sprintly.sqlite
+ENV DATABASE_PATH=/app/data/em-to-do.sqlite
 ENV WEB_ROOT=/app/web
 CMD ["node", "api/dist/index.js"]

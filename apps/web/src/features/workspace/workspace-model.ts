@@ -1,4 +1,4 @@
-import { addDays, sprintDays, type Category, type CreateTaskInput, type Task, type TaskStatus, type UpdateTaskInput } from "@sprintly/shared";
+import { addDays, sprintDays, type Category, type CreateTaskInput, type Task, type TaskStatus, type UpdateTaskInput } from "@em-todo/shared";
 
 export type ViewMode = "kanban" | "week";
 

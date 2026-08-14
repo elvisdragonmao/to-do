@@ -1,4 +1,4 @@
-import type { Category } from "@sprintly/shared";
+import type { Category } from "@em-todo/shared";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import type { ReactNode } from "react";
 

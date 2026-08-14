@@ -11,7 +11,7 @@ import {
 	taskSchema,
 	updateCategorySchema,
 	updateTaskSchema
-} from "@sprintly/shared";
+} from "@em-todo/shared";
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
@@ -21,9 +21,9 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { z, ZodError, type ZodType } from "zod";
 
-import { SprintlyDatabase } from "./database.js";
+import { TodoDatabase } from "./database.js";
 
-const SESSION_COOKIE = "sprintly_session";
+const SESSION_COOKIE = "em_todo_session";
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
 type AppOptions = {
@@ -40,23 +40,20 @@ export async function createApp(options: AppOptions): Promise<FastifyInstance> {
 		logger: options.logger ?? false,
 		bodyLimit: 1024 * 1024
 	});
-	const database = new SprintlyDatabase(options.databasePath);
+	const database = new TodoDatabase(options.databasePath);
 	await database.initializePassword(options.password);
 
 	await app.register(cookie);
 	await app.register(rateLimit, { global: false, max: 20, timeWindow: "1 minute" });
 
-	app.decorateRequest("sprintlyAuthenticated", false);
 	app.addHook("onRequest", async (request, reply) => {
 		if (!request.url.startsWith("/api/") || isPublicApiPath(request.url)) return;
 		const token = request.cookies[SESSION_COOKIE];
 		if (!token || !database.hasSession(token)) {
 			return sendError(reply, 401, "UNAUTHENTICATED", "請先登入");
 		}
-		request.sprintlyAuthenticated = true;
-
 		if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) {
-			if (request.headers["x-sprintly-request"] !== "web") {
+			if (request.headers["x-em-todo-request"] !== "web") {
 				return sendError(reply, 403, "INVALID_REQUEST_SOURCE", "無法驗證請求來源");
 			}
 		}
@@ -144,8 +141,8 @@ export async function createApp(options: AppOptions): Promise<FastifyInstance> {
 		if (error instanceof ZodError) {
 			return sendError(reply, 400, "INVALID_REQUEST", "輸入內容有誤", error.flatten());
 		}
-		const appError = error as Error & { code?: string; statusCode?: number };
-		if (appError.code === "SQLITE_CONSTRAINT_UNIQUE") {
+		const appError = error as Error & { code?: string; errcode?: number; statusCode?: number };
+		if (appError.errcode === 2067) {
 			return sendError(reply, 409, "ALREADY_EXISTS", "相同名稱已經存在");
 		}
 		if (appError.statusCode && appError.statusCode < 500) {
@@ -184,10 +181,4 @@ function sendError(reply: FastifyReply, status: number, code: string, message: s
 			error: { code, message, ...(details === undefined ? {} : { details }) }
 		})
 	);
-}
-
-declare module "fastify" {
-	interface FastifyRequest {
-		sprintlyAuthenticated: boolean;
-	}
 }

@@ -10,8 +10,8 @@ if (production && !password) {
 }
 
 const app = await createApp({
-	databasePath: process.env.DATABASE_PATH ?? resolve(import.meta.dirname, "../../../data/sprintly.sqlite"),
-	password: password ?? "sprintly",
+	databasePath: process.env.DATABASE_PATH ?? resolve(import.meta.dirname, "../../../data/em-to-do.sqlite"),
+	password: password ?? "em-to-do",
 	production,
 	serveWeb: production,
 	webRoot: process.env.WEB_ROOT,

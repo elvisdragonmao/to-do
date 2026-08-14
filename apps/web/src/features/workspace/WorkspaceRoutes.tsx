@@ -1,4 +1,4 @@
-import { startOfSprint } from "@sprintly/shared";
+import { startOfSprint } from "@em-todo/shared";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { Workspace } from "./Workspace.js";

@@ -1,4 +1,4 @@
-import type { Category, Task } from "@sprintly/shared";
+import type { Category, Task } from "@em-todo/shared";
 
 import { formatShortDate, formatSprintLabel } from "../../date-format.js";
 import { Icon } from "../../icons.js";

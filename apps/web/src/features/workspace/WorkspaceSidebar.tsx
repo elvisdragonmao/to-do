@@ -1,4 +1,4 @@
-import type { Category, Task } from "@sprintly/shared";
+import type { Category, Task } from "@em-todo/shared";
 import { useDroppable } from "@dnd-kit/core";
 import type { RefObject } from "react";
 

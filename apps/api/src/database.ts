@@ -7,7 +7,7 @@ import {
 	type UpdateTaskInput,
 	resolvePlacementHistory,
 	taskPlacementSchema
-} from "@sprintly/shared";
+} from "@em-todo/shared";
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -46,7 +46,7 @@ type CategoryRow = {
 	sort_order: number;
 };
 
-export class SprintlyDatabase {
+export class TodoDatabase {
 	readonly db: DatabaseSync;
 
 	constructor(path: string) {
@@ -294,7 +294,7 @@ export class SprintlyDatabase {
 			.prepare(
 				`INSERT OR IGNORE INTO categories
           (id, name, color, is_default, created_at, sort_order)
-         VALUES (?, '未分類', '#5f5e62', 1, ?, 0)`
+         VALUES (?, '未分類', '#A69697', 1, ?, 0)`
 			)
 			.run(DEFAULT_CATEGORY_ID, new Date().toISOString());
 	}

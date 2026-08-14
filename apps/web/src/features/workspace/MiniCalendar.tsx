@@ -1,4 +1,4 @@
-import { addDays, startOfSprint, type Task } from "@sprintly/shared";
+import { addDays, startOfSprint, type Task } from "@em-todo/shared";
 import { useEffect, useState, type CSSProperties } from "react";
 
 import { calendarGrid, formatMonth, sameMonth } from "../../date-format.js";

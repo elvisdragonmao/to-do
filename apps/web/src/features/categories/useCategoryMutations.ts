@@ -1,4 +1,4 @@
-import type { Category } from "@sprintly/shared";
+import type { Category } from "@em-todo/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { updateCategory } from "../../api.js";

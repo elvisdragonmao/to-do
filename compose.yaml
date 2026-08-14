@@ -1,11 +1,11 @@
 services:
-  sprintly:
+  em-to-do:
     build:
       context: .
-    container_name: sprintly
+    container_name: em-to-do
     environment:
       APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD in .env}
-      DATABASE_PATH: /app/data/sprintly.sqlite
+      DATABASE_PATH: /app/data/em-to-do.sqlite
       NODE_ENV: production
       PORT: 3000
       TZ: Asia/Taipei
@@ -14,7 +14,7 @@ services:
       - "${PORT:-3000}:3000"
     restart: unless-stopped
     volumes:
-      - sprintly-data:/app/data
+      - em-to-do-data:/app/data
 
 volumes:
-  sprintly-data:
+  em-to-do-data:

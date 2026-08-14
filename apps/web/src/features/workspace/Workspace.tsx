@@ -1,4 +1,4 @@
-import { isoDateSchema, startOfSprint, type CreateTaskInput, type Task, type UpdateTaskInput } from "@sprintly/shared";
+import { isoDateSchema, startOfSprint, type CreateTaskInput, type Task, type UpdateTaskInput } from "@em-todo/shared";
 import {
 	closestCenter,
 	DndContext,

@@ -1,4 +1,4 @@
-import type { SprintTasksResponse } from "@sprintly/shared";
+import type { SprintTasksResponse } from "@em-todo/shared";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { QueryClient, queryOptions } from "@tanstack/react-query";
 
@@ -66,14 +66,14 @@ queryClient.setMutationDefaults(mutationKeys.deleteTask, {
 
 export const persister = createSyncStoragePersister({
 	storage: window.localStorage,
-	key: "sprintly-query-cache-v1",
+	key: "em-to-do-query-cache-v1",
 	throttleTime: 500
 });
 
 export const persistOptions = {
 	persister,
 	maxAge: 1000 * 60 * 60 * 24 * 7,
-	buster: "sprintly-v1",
+	buster: "em-to-do-v1",
 	dehydrateOptions: {
 		shouldDehydrateQuery: (query: { queryKey: readonly unknown[]; state: { status: string } }) =>
 			query.state.status === "success" && (query.queryKey[0] === "tasks" || query.queryKey[0] === "categories" || query.queryKey[0] === "session"),

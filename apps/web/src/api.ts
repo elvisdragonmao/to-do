@@ -12,7 +12,7 @@ import {
 	sessionSchema,
 	sprintTasksResponseSchema,
 	taskSchema
-} from "@sprintly/shared";
+} from "@em-todo/shared";
 import type { ZodType } from "zod";
 
 export class ApiRequestError extends Error {
@@ -84,7 +84,7 @@ export async function deleteTask(taskId: string): Promise<void> {
 	const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
 		method: "DELETE",
 		credentials: "same-origin",
-		headers: { "x-sprintly-request": "web" }
+		headers: { "x-em-todo-request": "web" }
 	});
 	if (!response.ok) throw await parseError(response);
 }
@@ -93,7 +93,7 @@ async function request<T>(path: string, schema: ZodType<T>, init: RequestInit = 
 	const headers = new Headers(init.headers);
 	if (init.body) headers.set("content-type", "application/json");
 	if (init.method && !["GET", "HEAD"].includes(init.method)) {
-		headers.set("x-sprintly-request", "web");
+		headers.set("x-em-todo-request", "web");
 	}
 
 	const response = await fetch(path, {
