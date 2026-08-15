@@ -1,7 +1,7 @@
 import type { Task } from "@em-todo/shared";
 import { describe, expect, it } from "vitest";
 
-import { sortTasks } from "./task-list-model.js";
+import { sortTasks, taskListStatus, updateForListPlannedDate, updateForListStatus } from "./task-list-model.js";
 
 const base: Task = {
 	id: "base",
@@ -39,5 +39,23 @@ describe("task list sorting", () => {
 
 		expect(sortTasks([doing, backlog, base], "status", "asc").map(task => task.id)).toEqual(["backlog", "base", "doing"]);
 		expect(sortTasks([backlog, base], "planned", "asc").map(task => task.id)).toEqual(["base", "backlog"]);
+	});
+});
+
+describe("task list editing", () => {
+	it("moves tasks between backlog and sprint statuses", () => {
+		expect(taskListStatus({ ...base, isBacklog: true })).toBe("BACKLOG");
+		expect(updateForListStatus(base, "BACKLOG")).toEqual({ version: 1, isBacklog: true, scheduledDate: null, status: "TODO" });
+		expect(updateForListStatus({ ...base, isBacklog: true }, "DOING")).toEqual({ version: 1, isBacklog: false, status: "DOING" });
+	});
+
+	it("moves a planned date to its matching sprint and can clear it", () => {
+		expect(updateForListPlannedDate(base, "2026-08-23")).toEqual({
+			version: 1,
+			isBacklog: false,
+			scheduledDate: "2026-08-23",
+			sprintStart: "2026-08-17"
+		});
+		expect(updateForListPlannedDate(base, "")).toEqual({ version: 1, scheduledDate: null });
 	});
 });

@@ -48,7 +48,7 @@ import styles from "./WorkspacePage.module.css";
 
 const collisionDetection: CollisionDetection = args => {
 	const pointerCollisions = pointerWithin(args);
-	if (pointerCollisions.length === 0) return closestCenter(args);
+	if (pointerCollisions.length === 0) return args.pointerCoordinates ? [] : closestCenter(args);
 	const typeFor = (id: string | number) => args.droppableContainers.find(container => container.id === id)?.data.current?.type;
 	return pointerCollisions.toSorted((left, right) => collisionPriority(typeFor(left.id)) - collisionPriority(typeFor(right.id)));
 };
@@ -236,6 +236,7 @@ export function WorkspacePage() {
 		[sprintStart, taskMutations.create, uncategorized]
 	);
 	const updateTask = useCallback((taskId: string, input: UpdateTaskInput) => taskMutations.update.mutate({ taskId, input }), [taskMutations.update]);
+	const deleteTask = useCallback((taskId: string) => taskMutations.remove.mutate({ taskId }), [taskMutations.remove]);
 	const moveSelection = useCallback(
 		(direction: "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight") => {
 			const target = findDirectionalTask(selectedTaskId, direction);
@@ -344,6 +345,7 @@ export function WorkspacePage() {
 		>
 			<div className={styles.appShell}>
 				<WorkspaceSidebar
+					activeTaskId={activeTask?.id ?? null}
 					activeTarget={activeTarget}
 					categories={categories}
 					numbered={numbered}
@@ -393,7 +395,16 @@ export function WorkspacePage() {
 									</Button>
 								</div>
 							) : (
-								<TaskListView categories={categories} onSelect={taskId => selectTask(taskId)} searchMatches={searchMatches} selectedTaskId={selectedTaskId} syncStates={syncStates} tasks={allTasks} />
+								<TaskListView
+									categories={categories}
+									onDelete={deleteTask}
+									onSelect={taskId => selectTask(taskId)}
+									onUpdate={updateTask}
+									searchMatches={searchMatches}
+									selectedTaskId={selectedTaskId}
+									syncStates={syncStates}
+									tasks={allTasks}
+								/>
 							)
 						) : (
 							<section aria-label="Sprint 項目" className={[styles.pager, dragging ? styles.dragging : ""].filter(Boolean).join(" ")} ref={pagerRef}>
@@ -420,6 +431,7 @@ export function WorkspacePage() {
 												</div>
 											) : (
 												<TaskBoard
+													activeTaskId={activeTask?.id ?? null}
 													activeTarget={activeTarget}
 													categories={categories}
 													numbered={numbered}

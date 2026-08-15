@@ -24,6 +24,9 @@
 	max-width: 520px;
 	padding: var(--space-5);
 	transform-origin: center;
+	transition:
+		opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
 	width: min(100%, 520px);
 }
 
@@ -33,11 +36,14 @@
 }
 
 .popup[data-starting-style],
+.popup[data-ending-style],
+.backdrop[data-ending-style],
 .backdrop[data-starting-style] {
 	opacity: 0;
 }
 
-.popup[data-starting-style] {
+.popup[data-starting-style],
+.popup[data-ending-style] {
 	transform: scale(0.94);
 }
 

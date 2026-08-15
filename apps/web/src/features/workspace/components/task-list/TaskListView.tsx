@@ -1,11 +1,12 @@
-import type { Category, Task } from "@em-todo/shared";
-import { useMemo, useState } from "react";
+import type { Category, Task, UpdateTaskInput } from "@em-todo/shared";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { CountBadge } from "../../../../shared/components/count-badge/CountBadge.js";
 import { Icon } from "../../../../shared/components/icon/Icon.js";
 import { formatShortDate } from "../../../../shared/utils/date-format.js";
 import { linkify } from "../../../../shared/utils/linkify.js";
-import { sortTasks, type TaskSortDirection, type TaskSortKey } from "../../models/task-list-model.js";
+import { CategoryTag } from "../task-card/CategoryTag.js";
+import { sortTasks, taskListStatus, updateForListPlannedDate, updateForListStatus, type TaskListStatus, type TaskSortDirection, type TaskSortKey } from "../../models/task-list-model.js";
 import type { SyncState } from "../../types/task.js";
 import styles from "./TaskListView.module.css";
 
@@ -16,7 +17,6 @@ const STATUS_LABELS: Record<Task["status"], string> = {
 };
 
 const COLUMNS: { key: TaskSortKey; label: string }[] = [
-	{ key: "title", label: "項目" },
 	{ key: "status", label: "狀態" },
 	{ key: "urgency", label: "緊急" },
 	{ key: "created", label: "建立" },
@@ -28,14 +28,18 @@ const COLUMNS: { key: TaskSortKey; label: string }[] = [
 
 export function TaskListView({
 	categories,
+	onDelete,
 	onSelect,
+	onUpdate,
 	searchMatches,
 	selectedTaskId,
 	syncStates,
 	tasks
 }: {
 	categories: Category[];
+	onDelete: (taskId: string) => void;
 	onSelect: (taskId: string) => void;
+	onUpdate: (taskId: string, input: UpdateTaskInput) => void;
 	searchMatches: Set<string> | null;
 	selectedTaskId: string | null;
 	syncStates: Map<string, SyncState>;
@@ -82,16 +86,24 @@ export function TaskListView({
 						<table>
 							<thead>
 								<tr>
+									<SortHeader direction={direction} label="項目" onSort={() => changeSort("title")} selected={sortKey === "title"} />
+									<th scope="col">分類</th>
 									{COLUMNS.map(column => (
 										<SortHeader direction={direction} key={column.key} label={column.label} onSort={() => changeSort(column.key)} selected={sortKey === column.key} />
 									))}
+									<th className={styles.actionsHeader} scope="col">
+										<span className="sr-only">操作</span>
+									</th>
 								</tr>
 							</thead>
 							<tbody>
 								{group.tasks.map(task => (
 									<TaskRow
+										categories={categories}
 										key={task.id}
+										onDelete={() => onDelete(task.id)}
 										onSelect={() => onSelect(task.id)}
+										onUpdate={input => onUpdate(task.id, input)}
 										searchMatch={searchMatches?.has(task.id)}
 										selected={selectedTaskId === task.id}
 										syncState={syncStates.get(task.id)}
@@ -119,7 +131,29 @@ function SortHeader({ direction, label, onSort, selected }: { direction: TaskSor
 	);
 }
 
-function TaskRow({ onSelect, searchMatch, selected, syncState, task }: { onSelect: () => void; searchMatch: boolean | undefined; selected: boolean; syncState: SyncState; task: Task }) {
+function TaskRow({
+	categories,
+	onDelete,
+	onSelect,
+	onUpdate,
+	searchMatch,
+	selected,
+	syncState,
+	task
+}: {
+	categories: Category[];
+	onDelete: () => void;
+	onSelect: () => void;
+	onUpdate: (input: UpdateTaskInput) => void;
+	searchMatch: boolean | undefined;
+	selected: boolean;
+	syncState: SyncState;
+	task: Task;
+}) {
+	const disabled = Boolean(syncState);
+	const update = (input: Omit<UpdateTaskInput, "version">) => onUpdate({ version: task.version, ...input });
+	const category = categories.find(item => item.id === task.categoryId);
+
 	return (
 		<tr
 			aria-busy={Boolean(syncState)}
@@ -134,27 +168,338 @@ function TaskRow({ onSelect, searchMatch, selected, syncState, task }: { onSelec
 			tabIndex={0}
 		>
 			<td>
-				<div className={styles.title}>
-					<strong>{task.title}</strong>
-					{task.description ? <span>{linkify(task.description)}</span> : null}
+				<div className={styles.titleCell}>
+					<TaskTextEditor disabled={disabled} onCommit={update} task={task} />
 					{syncState ? <small role="status">{syncState === "queued" ? "待同步" : syncState === "deleting" ? "刪除中" : "同步中"}</small> : null}
 				</div>
 			</td>
-			<td>
-				<span className={[styles.status, statusClass(task)].filter(Boolean).join(" ")}>{task.isBacklog ? "Backlog" : STATUS_LABELS[task.status]}</span>
+			<td className={styles.categoryCell}>
+				<CategoryTag categories={categories} category={category} disabled={disabled} onChange={categoryId => update({ categoryId })} value={task.categoryId} />
 			</td>
 			<td>
-				<span aria-label={`緊急程度 ${task.urgency}`} className={[styles.urgency, styles[`urgency${task.urgency}`]].filter(Boolean).join(" ")}>
+				<label className={[styles.status, styles.selectControl, statusClass(task)].filter(Boolean).join(" ")}>
+					<select aria-label={`${task.title} 狀態`} disabled={disabled} onChange={event => onUpdate(updateForListStatus(task, event.target.value as TaskListStatus))} value={taskListStatus(task)}>
+						<option value="BACKLOG">Backlog</option>
+						<option value="TODO">To Do</option>
+						<option value="DOING">In Progress</option>
+						<option value="DONE">Done</option>
+					</select>
+					<span>{task.isBacklog ? "Backlog" : STATUS_LABELS[task.status]}</span>
+					<Icon name="chevronDown" />
+				</label>
+			</td>
+			<td>
+				<label className={[styles.urgency, styles.selectControl, styles[`urgency${task.urgency}`]].filter(Boolean).join(" ")}>
 					<Icon name="flag" />
-					{task.urgency}
-				</span>
+					<select aria-label={`${task.title} 緊急程度`} disabled={disabled} onChange={event => update({ urgency: Number(event.target.value) })} value={task.urgency}>
+						{[1, 2, 3, 4].map(value => (
+							<option key={value} value={value}>
+								{value}
+							</option>
+						))}
+					</select>
+					<span>{task.urgency}</span>
+					<Icon name="chevronDown" />
+				</label>
 			</td>
 			<td>{formatShortDate(task.createdAt.slice(0, 10))}</td>
-			<td>{plannedLabel(task)}</td>
-			<td>{task.estimatedHours === null ? "—" : `${task.estimatedHours}h`}</td>
-			<td>{task.dueDate ? formatShortDate(task.dueDate) : "—"}</td>
+			<td>
+				<EditableDate
+					disabled={disabled}
+					displayValue={plannedLabel(task)}
+					label={`${task.title} 預計日期`}
+					onCommit={value => onUpdate(updateForListPlannedDate(task, value))}
+					value={task.scheduledDate ?? ""}
+				/>
+			</td>
+			<td>
+				<EditableHours disabled={disabled} label={`${task.title} 預估時數`} onCommit={estimatedHours => update({ estimatedHours })} value={task.estimatedHours} />
+			</td>
+			<td>
+				<EditableDate
+					disabled={disabled}
+					displayValue={task.dueDate ? formatShortDate(task.dueDate) : "—"}
+					label={`${task.title} Deadline`}
+					onCommit={value => update({ dueDate: value || null })}
+					value={task.dueDate ?? ""}
+				/>
+			</td>
 			<td>{task.completedDate ? formatShortDate(task.completedDate) : "—"}</td>
+			<td className={styles.actions}>
+				<button
+					aria-label={`刪除 ${task.title}`}
+					className={styles.deleteButton}
+					disabled={disabled}
+					onClick={event => {
+						event.stopPropagation();
+						onDelete();
+					}}
+					title="刪除項目"
+					type="button"
+				>
+					<Icon name="trash" />
+				</button>
+			</td>
 		</tr>
+	);
+}
+
+function TaskTextEditor({ disabled, onCommit, task }: { disabled: boolean; onCommit: (input: Omit<UpdateTaskInput, "version">) => void; task: Task }) {
+	return (
+		<div className={styles.title}>
+			<InlineTextEditor
+				className={styles.titleValue}
+				disabled={disabled}
+				editorClassName={styles.titleEditor}
+				label="標題"
+				maxLength={160}
+				onCommit={title => onCommit({ title })}
+				required
+				value={task.title}
+			/>
+			<InlineTextEditor
+				className={styles.descriptionValue}
+				disabled={disabled}
+				editorClassName={styles.descriptionEditor}
+				label="描述"
+				maxLength={4000}
+				multiline
+				onCommit={description => onCommit({ description })}
+				placeholder="新增描述"
+				value={task.description}
+			/>
+		</div>
+	);
+}
+
+function InlineTextEditor({
+	className,
+	disabled,
+	editorClassName,
+	label,
+	maxLength,
+	multiline = false,
+	onCommit,
+	placeholder,
+	required = false,
+	value
+}: {
+	className: string | undefined;
+	disabled: boolean;
+	editorClassName: string | undefined;
+	label: string;
+	maxLength: number;
+	multiline?: boolean;
+	onCommit: (value: string) => void;
+	placeholder?: string;
+	required?: boolean;
+	value: string;
+}) {
+	const [editing, setEditing] = useState(false);
+	const [draft, setDraft] = useState(value);
+	const ignoreBlur = useRef(false);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	useEffect(() => {
+		if (!editing) setDraft(value);
+	}, [editing, value]);
+	useEffect(() => {
+		if (!editing) return;
+		if (multiline) textareaRef.current?.focus();
+		else inputRef.current?.focus();
+	}, [editing, multiline]);
+
+	const begin = () => {
+		ignoreBlur.current = false;
+		setDraft(value);
+		setEditing(true);
+	};
+	const cancel = () => {
+		ignoreBlur.current = true;
+		setDraft(value);
+		setEditing(false);
+	};
+	const commit = () => {
+		const next = draft.trim();
+		if (required && !next) {
+			setDraft(value);
+			setEditing(false);
+			return;
+		}
+		setEditing(false);
+		if (next !== value) onCommit(next);
+	};
+	const blur = () => {
+		if (ignoreBlur.current) {
+			ignoreBlur.current = false;
+			return;
+		}
+		commit();
+	};
+	const keyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+		if (event.key === "Escape") {
+			event.preventDefault();
+			cancel();
+			return;
+		}
+		if (event.key === "Enter" && (!multiline || event.metaKey || event.ctrlKey)) {
+			event.preventDefault();
+			commit();
+		}
+	};
+
+	if (!editing) {
+		return (
+			<button className={[styles.inlineValue, className, value ? "" : styles.emptyValue].filter(Boolean).join(" ")} disabled={disabled} onClick={begin} title={`編輯${label}`} type="button">
+				{value ? (multiline ? linkify(value) : value) : placeholder}
+			</button>
+		);
+	}
+
+	if (multiline) {
+		return (
+			<textarea
+				aria-label={label}
+				className={[styles.inlineEditor, editorClassName].filter(Boolean).join(" ")}
+				maxLength={maxLength}
+				onBlur={blur}
+				onChange={event => setDraft(event.target.value)}
+				onClick={event => event.stopPropagation()}
+				onKeyDown={keyDown}
+				ref={textareaRef}
+				rows={2}
+				value={draft}
+			/>
+		);
+	}
+
+	return (
+		<input
+			aria-label={label}
+			className={[styles.inlineEditor, editorClassName].filter(Boolean).join(" ")}
+			maxLength={maxLength}
+			onBlur={blur}
+			onChange={event => setDraft(event.target.value)}
+			onClick={event => event.stopPropagation()}
+			onKeyDown={keyDown}
+			ref={inputRef}
+			value={draft}
+		/>
+	);
+}
+
+function EditableDate({ disabled, displayValue, label, onCommit, value }: { disabled: boolean; displayValue: string; label: string; onCommit: (value: string) => void; value: string }) {
+	const [editing, setEditing] = useState(false);
+	if (editing) {
+		return (
+			<input
+				aria-label={label}
+				autoFocus
+				className={`${styles.inlineEditor} ${styles.cellEditor}`}
+				disabled={disabled}
+				onBlur={() => setEditing(false)}
+				onChange={event => {
+					setEditing(false);
+					if (event.target.value !== value) onCommit(event.target.value);
+				}}
+				onClick={event => event.stopPropagation()}
+				onKeyDown={event => {
+					if (event.key === "Escape") setEditing(false);
+				}}
+				type="date"
+				value={value}
+			/>
+		);
+	}
+	return (
+		<button
+			aria-label={`${label}：${displayValue}`}
+			className={styles.cellButton}
+			disabled={disabled}
+			onClick={event => {
+				event.stopPropagation();
+				setEditing(true);
+			}}
+			title={`編輯${label}`}
+			type="button"
+		>
+			{displayValue}
+		</button>
+	);
+}
+
+function EditableHours({ disabled, label, onCommit, value }: { disabled: boolean; label: string; onCommit: (value: number | null) => void; value: number | null }) {
+	const [editing, setEditing] = useState(false);
+	const [draft, setDraft] = useState(value === null ? "" : String(value));
+	const ref = useRef<HTMLInputElement>(null);
+	useEffect(() => {
+		if (!editing) setDraft(value === null ? "" : String(value));
+	}, [editing, value]);
+	useEffect(() => {
+		if (editing) ref.current?.focus();
+	}, [editing]);
+	const commit = () => {
+		const normalized = draft.trim();
+		if (!normalized) {
+			if (value !== null) onCommit(null);
+			setEditing(false);
+			return;
+		}
+		const next = Number(normalized);
+		if (!Number.isFinite(next) || next < 0 || next > 10000) {
+			setDraft(value === null ? "" : String(value));
+			setEditing(false);
+			return;
+		}
+		if (next !== value) onCommit(next);
+		setEditing(false);
+	};
+	if (!editing) {
+		return (
+			<button
+				aria-label={`${label}：${value === null ? "未設定" : `${value} 小時`}`}
+				className={styles.cellButton}
+				disabled={disabled}
+				onClick={event => {
+					event.stopPropagation();
+					setDraft(value === null ? "" : String(value));
+					setEditing(true);
+				}}
+				title={`編輯${label}`}
+				type="button"
+			>
+				{value === null ? "—" : `${value}h`}
+			</button>
+		);
+	}
+	return (
+		<label className={styles.hoursEditor}>
+			<input
+				aria-label={label}
+				className={`${styles.inlineEditor} ${styles.numberEditor}`}
+				disabled={disabled}
+				inputMode="decimal"
+				max="10000"
+				min="0"
+				onBlur={commit}
+				onChange={event => setDraft(event.target.value)}
+				onClick={event => event.stopPropagation()}
+				onKeyDown={event => {
+					if (event.key === "Enter") event.currentTarget.blur();
+					if (event.key === "Escape") {
+						event.preventDefault();
+						setDraft(value === null ? "" : String(value));
+						setEditing(false);
+					}
+				}}
+				placeholder="—"
+				ref={ref}
+				step="0.25"
+				type="number"
+				value={draft}
+			/>
+			<span aria-hidden="true">h</span>
+		</label>
 	);
 }
 

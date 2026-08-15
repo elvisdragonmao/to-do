@@ -60,7 +60,7 @@
 }
 
 .pager {
-	background: var(--md-sys-color-surface-dim);
+	background: var(--md-sys-color-surface);
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-4);

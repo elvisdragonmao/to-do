@@ -9,6 +9,9 @@
 	min-width: 184px;
 	padding: var(--space-2);
 	transform-origin: var(--transform-origin);
+	transition:
+		opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
 }
 
 .popup[data-starting-style],

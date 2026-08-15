@@ -17,14 +17,11 @@ export const taskMutationKeys = {
 	delete: ["tasks", "delete"] as const
 };
 
-export const sprintTasksQuery = (sprintStart: string) =>
-	queryOptions({ queryKey: taskQueryKeys.sprint(sprintStart), queryFn: ({ signal }) => getSprintTasks(sprintStart, signal), staleTime: 30_000 });
+export const sprintTasksQuery = (sprintStart: string) => queryOptions({ queryKey: taskQueryKeys.sprint(sprintStart), queryFn: ({ signal }) => getSprintTasks(sprintStart, signal), staleTime: 30_000 });
 
-export const backlogTasksQuery = () =>
-	queryOptions({ queryKey: taskQueryKeys.backlog, queryFn: ({ signal }) => getBacklogTasks(signal), staleTime: 30_000 });
+export const backlogTasksQuery = () => queryOptions({ queryKey: taskQueryKeys.backlog, queryFn: ({ signal }) => getBacklogTasks(signal), staleTime: 30_000 });
 
-export const allTasksQuery = () =>
-	queryOptions({ queryKey: taskQueryKeys.allList, queryFn: ({ signal }) => getAllTasks(signal), staleTime: 30_000 });
+export const allTasksQuery = () => queryOptions({ queryKey: taskQueryKeys.allList, queryFn: ({ signal }) => getAllTasks(signal), staleTime: 30_000 });
 
 queryClient.setMutationDefaults(taskMutationKeys.create, {
 	mutationFn: ({ input }: { input: Parameters<typeof createTask>[0]; optimisticId: string }) => createTask(input),

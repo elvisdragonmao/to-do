@@ -93,6 +93,21 @@
 	gap: var(--space-3);
 }
 
+.activeSource {
+	height: 0;
+	margin-block-end: calc(0px - var(--space-3));
+	min-height: 0;
+	pointer-events: none;
+	position: relative;
+}
+
+.activeSource > :last-child {
+	inset-inline: 0;
+	position: absolute;
+	top: 0;
+	visibility: hidden;
+}
+
 .placeholder {
 	animation: placeholder-in var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-decelerate);
 	background: color-mix(in srgb, var(--md-sys-color-primary) 7%, var(--md-sys-color-surface-container-high));

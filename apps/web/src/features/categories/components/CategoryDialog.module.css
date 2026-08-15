@@ -47,9 +47,19 @@
 .colors label {
 	border: 2px solid transparent;
 	border-radius: var(--md-sys-shape-corner-full);
+	cursor: pointer;
 	height: 32px;
 	position: relative;
+	transition: transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
 	width: 32px;
+}
+
+.colors label:hover {
+	transform: scale(1.08);
+}
+
+.colors label:active {
+	transform: scale(0.94);
 }
 
 .colors label:has(input:checked) {
@@ -58,6 +68,8 @@
 }
 
 .colors input {
+	cursor: pointer;
+	inset: 0;
 	opacity: 0;
 	position: absolute;
 }

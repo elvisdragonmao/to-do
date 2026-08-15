@@ -14,6 +14,7 @@ import type { SyncState } from "../../types/task.js";
 import styles from "./WorkspaceSidebar.module.css";
 
 type WorkspaceSidebarProps = {
+	activeTaskId: string | null;
 	activeTarget: PlacementTarget | null;
 	categories: Category[];
 	numbered: NumberedTarget[];
@@ -98,7 +99,7 @@ function CategoryGroup(props: WorkspaceSidebarProps & { category: Category }) {
 				</header>
 				{props.activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={props.onCancelCreate} onCreate={values => props.onCreate(target, values)} /> : null}
 				{categoryTasks.map(task => (
-					<BacklogDropSlot beforeTaskId={task.id} key={task.id} projected={Boolean(projected && props.projection?.beforeTaskId === task.id)} target={target}>
+					<BacklogDropSlot active={props.activeTaskId === task.id} beforeTaskId={task.id} key={task.id} projected={Boolean(projected && props.projection?.beforeTaskId === task.id)} target={target}>
 						<BacklogTask containerId={target.id} onSelect={() => props.onSelectTask(task)} syncState={props.syncStates.get(task.id)} task={task} />
 					</BacklogDropSlot>
 				))}
@@ -108,10 +109,10 @@ function CategoryGroup(props: WorkspaceSidebarProps & { category: Category }) {
 	);
 }
 
-function BacklogDropSlot({ beforeTaskId, children, projected, target }: { beforeTaskId: string; children: ReactNode; projected: boolean; target: PlacementTarget }) {
-	const { setNodeRef } = useDroppable({ id: `slot:${target.id}:${beforeTaskId}`, data: { type: "slot", target, beforeTaskId } });
+function BacklogDropSlot({ active, beforeTaskId, children, projected, target }: { active: boolean; beforeTaskId: string; children: ReactNode; projected: boolean; target: PlacementTarget }) {
+	const { setNodeRef } = useDroppable({ id: `slot:${target.id}:${beforeTaskId}`, data: { type: "slot", target, beforeTaskId }, disabled: active });
 	return (
-		<div className={styles.dropSlot} ref={setNodeRef}>
+		<div className={[styles.dropSlot, active ? styles.activeSource : ""].filter(Boolean).join(" ")} ref={setNodeRef}>
 			{projected ? <div aria-hidden="true" className={styles.placeholder} /> : null}
 			{children}
 		</div>

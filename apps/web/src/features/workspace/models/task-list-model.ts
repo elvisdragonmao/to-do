@@ -1,7 +1,8 @@
-import type { Task } from "@em-todo/shared";
+import { startOfSprint, type Task, type UpdateTaskInput } from "@em-todo/shared";
 
 export type TaskSortDirection = "asc" | "desc";
 export type TaskSortKey = "title" | "status" | "urgency" | "created" | "planned" | "hours" | "due" | "completed";
+export type TaskListStatus = "BACKLOG" | Task["status"];
 
 const STATUS_ORDER: Record<Task["status"], number> = { TODO: 0, DOING: 1, DONE: 2 };
 
@@ -15,6 +16,27 @@ export function sortTasks(tasks: Task[], key: TaskSortKey, direction: TaskSortDi
 		const comparison = typeof leftValue === "number" && typeof rightValue === "number" ? leftValue - rightValue : String(leftValue).localeCompare(String(rightValue), "zh-TW", { numeric: true });
 		return comparison === 0 ? stableOrder(left, right) : direction === "asc" ? comparison : -comparison;
 	});
+}
+
+export function taskListStatus(task: Task): TaskListStatus {
+	return task.isBacklog ? "BACKLOG" : task.status;
+}
+
+export function updateForListStatus(task: Task, status: TaskListStatus): UpdateTaskInput {
+	if (status === "BACKLOG") {
+		return { version: task.version, isBacklog: true, scheduledDate: null, status: "TODO" };
+	}
+	return { version: task.version, isBacklog: false, status };
+}
+
+export function updateForListPlannedDate(task: Task, scheduledDate: string): UpdateTaskInput {
+	if (!scheduledDate) return { version: task.version, scheduledDate: null };
+	return {
+		version: task.version,
+		isBacklog: false,
+		scheduledDate,
+		sprintStart: startOfSprint(scheduledDate)
+	};
 }
 
 function sortValue(task: Task, key: TaskSortKey): number | string | null {

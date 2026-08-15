@@ -15,6 +15,7 @@ import styles from "./TaskBoard.module.css";
 export type DropProjection = { target: PlacementTarget; beforeTaskId?: string } | null;
 
 type TaskBoardProps = {
+	activeTaskId: string | null;
 	activeTarget: PlacementTarget | null;
 	categories: Category[];
 	numbered: NumberedTarget[];
@@ -45,6 +46,7 @@ export function TaskBoard(props: TaskBoardProps) {
 }
 
 function BoardColumn({
+	activeTaskId,
 	activeTarget,
 	categories,
 	numbered,
@@ -86,7 +88,7 @@ function BoardColumn({
 			<div className={styles.tasks}>
 				{activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={onCancelCreate} onCreate={values => onCreate(target, values)} /> : null}
 				{targetTasks.map(task => (
-					<TaskDropSlot beforeTaskId={task.id} key={task.id} projected={Boolean(projectedHere && projection?.beforeTaskId === task.id)} target={target}>
+					<TaskDropSlot active={activeTaskId === task.id} beforeTaskId={task.id} key={task.id} projected={Boolean(projectedHere && projection?.beforeTaskId === task.id)} target={target}>
 						<TaskCard
 							categories={categories}
 							category={categories.find(category => category.id === task.categoryId)}
@@ -113,10 +115,10 @@ function BoardColumn({
 	);
 }
 
-function TaskDropSlot({ beforeTaskId, children, projected, target }: { beforeTaskId: string; children: ReactNode; projected: boolean; target: PlacementTarget }) {
-	const { setNodeRef } = useDroppable({ id: `slot:${target.id}:${beforeTaskId}`, data: { type: "slot", target, beforeTaskId } });
+function TaskDropSlot({ active, beforeTaskId, children, projected, target }: { active: boolean; beforeTaskId: string; children: ReactNode; projected: boolean; target: PlacementTarget }) {
+	const { setNodeRef } = useDroppable({ id: `slot:${target.id}:${beforeTaskId}`, data: { type: "slot", target, beforeTaskId }, disabled: active });
 	return (
-		<div className={styles.dropSlot} ref={setNodeRef}>
+		<div className={[styles.dropSlot, active ? styles.activeSource : ""].filter(Boolean).join(" ")} ref={setNodeRef}>
 			{projected ? <DropPlaceholder /> : null}
 			{children}
 		</div>
