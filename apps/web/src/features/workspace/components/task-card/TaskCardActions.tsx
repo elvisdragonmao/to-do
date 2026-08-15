@@ -1,6 +1,6 @@
 import type { Category } from "@em-todo/shared";
 
-import { Icon } from "../../../../icons.js";
+import { Icon } from "../../../../shared/components/icon/Icon.js";
 import { CategoryTag } from "./CategoryTag.js";
 import styles from "./TaskCard.module.css";
 

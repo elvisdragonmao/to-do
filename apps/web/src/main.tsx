@@ -5,9 +5,10 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { registerSW } from "virtual:pwa-register";
 
-import { App } from "./App.js";
-import { persistOptions, queryClient } from "./queries.js";
-import { initializeTheme } from "./theme.js";
+import "./features/workspace/services/task-queries.js";
+import { RootRouter } from "./layouts/RootRouter.js";
+import { initializeTheme } from "./shared/hooks/useTheme.js";
+import { persistOptions, queryClient } from "./shared/services/query-client.js";
 import "./styles.css";
 
 initializeTheme();
@@ -29,7 +30,7 @@ createRoot(document.getElementById("root")!).render(
 	<StrictMode>
 		<PersistQueryClientProvider client={queryClient} persistOptions={persistOptions} onSuccess={() => queryClient.resumePausedMutations()}>
 			<BrowserRouter>
-				<App />
+				<RootRouter />
 			</BrowserRouter>
 		</PersistQueryClientProvider>
 	</StrictMode>

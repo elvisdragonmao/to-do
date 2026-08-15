@@ -2,7 +2,7 @@ import type { Category, Task, UpdateTaskInput } from "@em-todo/shared";
 import { useDraggable } from "@dnd-kit/core";
 import { memo } from "react";
 
-import { Spinner } from "../../../../components/Spinner.js";
+import { Spinner } from "../../../../shared/components/spinner/Spinner.js";
 import type { SyncState } from "../../types/task.js";
 import { TaskCardActions } from "./TaskCardActions.js";
 import styles from "./TaskCard.module.css";

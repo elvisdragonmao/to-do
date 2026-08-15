@@ -1,6 +1,6 @@
 import type { Category, Task } from "@em-todo/shared";
 
-import { Icon } from "../../../../icons.js";
+import { Icon } from "../../../../shared/components/icon/Icon.js";
 import { formatShortDate } from "../../../../shared/utils/date-format.js";
 import { linkify } from "../../../../shared/utils/linkify.js";
 import { CategoryTag } from "./CategoryTag.js";
