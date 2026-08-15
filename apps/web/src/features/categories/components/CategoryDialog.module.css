@@ -1,0 +1,63 @@
+.list {
+	display: grid;
+	gap: var(--space-2);
+	margin-bottom: var(--space-5);
+}
+
+.row {
+	align-items: center;
+	display: flex;
+	gap: var(--space-3);
+	min-height: 40px;
+}
+
+.row i {
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--md-sys-shape-corner-full);
+	height: 20px;
+	width: 20px;
+}
+
+.row small {
+	color: var(--md-sys-color-on-surface-variant);
+	margin-inline-start: auto;
+}
+
+.form {
+	border-top: 1px solid var(--md-sys-color-outline-variant);
+	display: grid;
+	gap: var(--space-4);
+	padding-top: var(--space-5);
+}
+
+.colors {
+	border: 0;
+	display: flex;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+}
+
+.colors legend {
+	color: var(--md-sys-color-on-surface-variant);
+	font: var(--md-sys-typescale-label-medium-weight) var(--md-sys-typescale-label-medium-size) / var(--md-sys-typescale-label-medium-line-height) var(--md-sys-typescale-label-medium-font);
+	margin-bottom: var(--space-2);
+}
+
+.colors label {
+	border: 2px solid transparent;
+	border-radius: var(--md-sys-shape-corner-full);
+	height: 32px;
+	position: relative;
+	width: 32px;
+}
+
+.colors label:has(input:checked) {
+	border-color: var(--md-sys-color-on-surface);
+	box-shadow: 0 0 0 2px var(--md-sys-color-surface-container-high);
+}
+
+.colors input {
+	opacity: 0;
+	position: absolute;
+}

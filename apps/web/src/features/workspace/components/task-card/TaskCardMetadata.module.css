@@ -1,0 +1,83 @@
+.meta {
+	display: grid;
+	gap: var(--space-1) var(--space-2);
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.static,
+.button,
+.select {
+	align-items: center;
+	background: transparent;
+	border-radius: var(--md-sys-shape-corner-extra-small);
+	color: inherit;
+	display: grid;
+	font-size: var(--md-sys-typescale-label-small-size);
+	gap: var(--space-1);
+	grid-template-columns: 14px auto minmax(0, 1fr);
+	min-height: 24px;
+	min-width: 0;
+	padding: 2px;
+	position: relative;
+	text-align: start;
+}
+
+.button:hover,
+.select:hover {
+	background: color-mix(in srgb, var(--md-sys-color-on-surface) 9%, transparent);
+}
+
+.meta :is(.static, .button, .select) svg {
+	height: 13px;
+	width: 13px;
+}
+
+.meta :is(.static, .button, .select) > span,
+.editor span {
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.meta :is(.static, .button, .select) b {
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.select select {
+	border: 0;
+	inset: 0;
+	opacity: 0;
+	outline: none;
+	position: absolute;
+	width: 100%;
+}
+
+.editor {
+	display: grid;
+	font-size: var(--md-sys-typescale-label-small-size);
+	gap: 2px;
+}
+
+.editor input {
+	background: var(--md-sys-color-surface-container-lowest);
+	border: 2px solid var(--md-sys-color-primary);
+	border-radius: var(--md-sys-shape-corner-extra-small);
+	min-width: 0;
+	outline: none;
+	outline-width: 0;
+	padding: 1px var(--space-1);
+	width: 100%;
+}
+
+.editor input:is(:focus, :focus-visible) {
+	border-color: var(--md-sys-color-primary);
+	outline: none;
+	outline-width: 0;
+}
+
+@media (max-width: 599px) {
+	.meta {
+		grid-template-columns: 1fr;
+	}
+}

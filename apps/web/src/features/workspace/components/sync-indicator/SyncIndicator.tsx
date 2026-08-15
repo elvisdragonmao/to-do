@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { Icon } from "../../../../shared/components/icon/Icon.js";
 import { Spinner } from "../../../../shared/components/spinner/Spinner.js";
 import { taskQueryKeys } from "../../services/task-queries.js";
+import styles from "./SyncIndicator.module.css";
 
 export function SyncIndicator() {
 	const online = useSyncExternalStore(
@@ -20,7 +21,7 @@ export function SyncIndicator() {
 
 	if (!online) {
 		return (
-			<div className="sync-pill sync-pill--offline" role="status">
+			<div className={[styles.pill, styles.offline].join(" ")} role="status">
 				<Icon name="wifiOff" />
 				離線{queued > 0 ? ` · ${queued} 項待同步` : " · 顯示快取"}
 			</div>
@@ -28,7 +29,7 @@ export function SyncIndicator() {
 	}
 	if (mutating > 0 || queued > 0) {
 		return (
-			<div className="sync-pill sync-pill--active" role="status">
+			<div className={[styles.pill, styles.active].join(" ")} role="status">
 				<Spinner label="正在同步變更" size="small" />
 				正在同步 {Math.max(mutating, queued)} 項
 			</div>
@@ -36,15 +37,15 @@ export function SyncIndicator() {
 	}
 	if (fetching > 0) {
 		return (
-			<div className="sync-pill" role="status">
+			<div className={styles.pill} role="status">
 				<Spinner label="正在檢查更新" size="small" />
 				檢查更新
 			</div>
 		);
 	}
 	return (
-		<div className="sync-pill sync-pill--synced" role="status">
-			<span aria-hidden="true" className="sync-dot" />
+		<div className={[styles.pill, styles.synced].join(" ")} role="status">
+			<span aria-hidden="true" className={styles.dot} />
 			已同步
 		</div>
 	);

@@ -1,4 +1,5 @@
 import { AppDialog } from "../../../../shared/components/app-dialog/AppDialog.js";
+import styles from "./ShortcutDialog.module.css";
 
 const shortcuts: [string, string][] = [
 	["N", "新增項目"],
@@ -16,7 +17,7 @@ const shortcuts: [string, string][] = [
 export function ShortcutDialog({ onClose, open }: { onClose: () => void; open: boolean }) {
 	return (
 		<AppDialog onOpenChange={next => (next ? undefined : onClose())} open={open} title="快捷鍵">
-			<dl className="shortcut-list">
+			<dl className={styles.list}>
 				{shortcuts.map(([keys, action]) => (
 					<div key={keys}>
 						<dt>

@@ -3,11 +3,14 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { categoryQueryKeys } from "../../categories/services/category-queries.js";
+import { Button } from "../../../shared/components/button/Button.js";
+import { Field, FieldError } from "../../../shared/components/field/Field.js";
 import { Spinner } from "../../../shared/components/spinner/Spinner.js";
 import { ApiRequestError } from "../../../shared/services/api-client.js";
 import { queryClient } from "../../../shared/services/query-client.js";
 import { login } from "../services/auth-api.js";
 import { sessionQueryKey } from "../services/auth-query.js";
+import styles from "./LoginPage.module.css";
 
 export function LoginPage() {
 	const [password, setPassword] = useState("");
@@ -36,22 +39,17 @@ export function LoginPage() {
 	};
 
 	return (
-		<main className="login-page">
-			<form aria-labelledby="login-title" className="login-card" onSubmit={submit}>
+		<main className={styles.page}>
+			<form aria-labelledby="login-title" className={styles.card} onSubmit={submit}>
 				<h1 id="login-title">EM&apos;s To Do</h1>
-				<label className="field">
-					<span>密碼</span>
+				<Field label="密碼">
 					<input autoComplete="current-password" autoFocus disabled={mutation.isPending} onChange={event => setPassword(event.target.value)} type="password" value={password} />
-				</label>
-				{mutation.isError ? (
-					<p className="field-error" role="alert">
-						{mutation.error instanceof ApiRequestError ? mutation.error.message : "無法登入"}
-					</p>
-				) : null}
-				<button className="button button--filled button--large" disabled={!password || mutation.isPending}>
+				</Field>
+				{mutation.isError ? <FieldError>{mutation.error instanceof ApiRequestError ? mutation.error.message : "無法登入"}</FieldError> : null}
+				<Button disabled={!password || mutation.isPending} large type="submit">
 					{mutation.isPending ? <Spinner label="登入中" size="small" /> : null}
 					登入
-				</button>
+				</Button>
 			</form>
 		</main>
 	);

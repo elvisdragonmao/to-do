@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { formatShortDate } from "../../../../shared/utils/date-format.js";
 import { Icon } from "../../../../shared/components/icon/Icon.js";
-import styles from "./TaskCard.module.css";
+import styles from "./TaskCardMetadata.module.css";
 
 export function TaskCardMetadata({
 	disabled,
@@ -83,7 +83,7 @@ function EditableInput({
 	};
 	if (editing) {
 		return (
-			<label className={styles.metaEditor}>
+			<label className={styles.editor}>
 				<span>{label}</span>
 				<input
 					aria-label={label}
@@ -126,7 +126,7 @@ function EditableSelect({
 }) {
 	const current = options.find(option => option[0] === value)?.[1] ?? value;
 	return (
-		<label className={styles.metaSelect} onPointerDown={event => event.stopPropagation()} title={`編輯${label}`}>
+		<label className={styles.select} onPointerDown={event => event.stopPropagation()} title={`編輯${label}`}>
 			<Icon name={icon} />
 			<span>{label}</span>
 			<select aria-label={label} disabled={disabled} onChange={event => onCommit(event.target.value)} value={value}>
@@ -143,7 +143,7 @@ function EditableSelect({
 
 function StaticMeta({ icon, label, value }: { icon: Parameters<typeof Icon>[0]["name"]; label: string; value: string }) {
 	return (
-		<span className={styles.metaStatic}>
+		<span className={styles.static}>
 			<Icon name={icon} />
 			<span>{label}</span>
 			<b>{value}</b>
@@ -153,7 +153,7 @@ function StaticMeta({ icon, label, value }: { icon: Parameters<typeof Icon>[0]["
 
 function MetaButton({ disabled, icon, label, onClick, value }: { disabled: boolean; icon: Parameters<typeof Icon>[0]["name"]; label: string; onClick: () => void; value: string }) {
 	return (
-		<button className={styles.metaButton} disabled={disabled} onClick={onClick} onPointerDown={event => event.stopPropagation()} title={`編輯${label}`} type="button">
+		<button className={styles.button} disabled={disabled} onClick={onClick} onPointerDown={event => event.stopPropagation()} title={`編輯${label}`} type="button">
 			<Icon name={icon} />
 			<span>{label}</span>
 			<b>{value}</b>

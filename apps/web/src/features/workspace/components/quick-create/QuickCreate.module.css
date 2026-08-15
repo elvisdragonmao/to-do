@@ -1,0 +1,41 @@
+.form {
+	background: var(--md-sys-color-surface-container-lowest);
+	border: 2px solid var(--md-sys-color-primary);
+	border-radius: var(--md-sys-shape-corner-medium);
+	display: grid;
+	gap: var(--space-2);
+	padding: var(--space-3);
+}
+
+.target {
+	color: var(--md-sys-color-primary);
+	font-size: var(--md-sys-typescale-label-medium-size);
+	font-weight: 700;
+}
+
+.form :is(input, textarea) {
+	background: transparent;
+	border: 0;
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+	min-height: 36px;
+	outline: 0;
+	padding: var(--space-1);
+	resize: vertical;
+	width: 100%;
+}
+
+.form :is(input, textarea):focus {
+	border-bottom-color: var(--md-sys-color-primary);
+}
+
+.details {
+	display: grid;
+	gap: var(--space-2);
+	grid-template-columns: minmax(72px, 0.7fr) minmax(116px, 1.3fr);
+}
+
+.error {
+	color: var(--md-sys-color-error);
+	font-size: var(--md-sys-typescale-label-small-size);
+	margin: 0;
+}

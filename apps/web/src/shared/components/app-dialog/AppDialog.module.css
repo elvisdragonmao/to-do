@@ -1,0 +1,103 @@
+.backdrop {
+	background: color-mix(in srgb, var(--md-sys-color-scrim) 45%, transparent);
+	inset: 0;
+	position: fixed;
+	transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+	z-index: 80;
+}
+
+.viewport {
+	align-items: center;
+	display: grid;
+	inset: 0;
+	justify-items: center;
+	overflow: auto;
+	padding: var(--space-5);
+	position: fixed;
+	z-index: 81;
+}
+
+.popup {
+	background: var(--md-sys-color-surface-container-high);
+	border-radius: var(--md-sys-shape-corner-extra-large);
+	color: var(--md-sys-color-on-surface);
+	max-width: 520px;
+	padding: var(--space-5);
+	transform-origin: center;
+	width: min(100%, 520px);
+}
+
+.wide {
+	max-width: 760px;
+	width: min(100%, 760px);
+}
+
+.popup[data-starting-style],
+.backdrop[data-starting-style] {
+	opacity: 0;
+}
+
+.popup[data-starting-style] {
+	transform: scale(0.94);
+}
+
+.header {
+	align-items: flex-start;
+	display: flex;
+	gap: var(--space-4);
+	justify-content: space-between;
+	margin-bottom: var(--space-5);
+}
+
+.title {
+	font: var(--md-sys-typescale-headline-small-weight) var(--md-sys-typescale-headline-small-size) / var(--md-sys-typescale-headline-small-line-height) var(--md-sys-typescale-headline-small-font);
+	margin: 0;
+}
+
+.description {
+	color: var(--md-sys-color-on-surface-variant);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	margin: var(--space-1) 0 0;
+}
+
+.close {
+	align-items: center;
+	background: transparent;
+	border-radius: var(--md-sys-shape-corner-full);
+	color: var(--md-sys-color-on-surface-variant);
+	display: inline-flex;
+	height: 48px;
+	justify-content: center;
+	transition:
+		background-color var(--md-sys-motion-duration-short),
+		transform var(--md-sys-motion-duration-short);
+	width: 48px;
+}
+
+.close:hover {
+	background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+
+.close:not(:disabled):active {
+	transform: scale(0.96);
+}
+
+.close svg {
+	height: 20px;
+	width: 20px;
+}
+
+@media (max-width: 599px) {
+	.viewport {
+		align-items: end;
+		padding: 0;
+	}
+
+	.popup,
+	.wide {
+		border-radius: var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0 0;
+		max-height: 92dvh;
+		overflow: auto;
+		width: 100%;
+	}
+}

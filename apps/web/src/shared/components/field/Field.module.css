@@ -1,0 +1,46 @@
+.field {
+	display: grid;
+	gap: var(--space-2);
+}
+
+.field > span {
+	color: var(--md-sys-color-on-surface-variant);
+	font: var(--md-sys-typescale-label-medium-weight) var(--md-sys-typescale-label-medium-size) / var(--md-sys-typescale-label-medium-line-height) var(--md-sys-typescale-label-medium-font);
+}
+
+.field :is(input, select, textarea) {
+	background: var(--md-sys-color-surface-container-lowest);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--md-sys-shape-corner-small);
+	min-height: 52px;
+	padding: var(--space-3) var(--space-4);
+	transition:
+		border-color var(--md-sys-motion-duration-short),
+		box-shadow var(--md-sys-motion-duration-short);
+	width: 100%;
+}
+
+.field textarea {
+	min-height: 104px;
+	resize: vertical;
+}
+
+.field :is(input, select, textarea):focus {
+	border-color: var(--md-sys-color-primary);
+	box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+	outline: none;
+}
+
+.field small {
+	color: var(--md-sys-color-on-surface-variant);
+	font-size: var(--md-sys-typescale-label-medium-size);
+}
+
+.error {
+	background: var(--md-sys-color-error-container);
+	border-radius: var(--md-sys-shape-corner-small);
+	color: var(--md-sys-color-on-error-container);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	margin: 0;
+	padding: var(--space-2) var(--space-3);
+}

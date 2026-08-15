@@ -1,0 +1,206 @@
+.view {
+	align-content: start;
+	display: grid;
+	gap: var(--space-4);
+	height: 100%;
+	min-height: 0;
+	overflow: auto;
+	padding: 2px;
+}
+
+.summary,
+.group > header {
+	align-items: center;
+	display: flex;
+	gap: var(--space-2);
+}
+
+.summary {
+	min-height: 40px;
+}
+
+.summary strong,
+.group h2 {
+	font: var(--md-sys-typescale-title-medium-weight) var(--md-sys-typescale-title-medium-size) / var(--md-sys-typescale-title-medium-line-height) var(--md-sys-typescale-title-medium-font);
+	margin: 0;
+}
+
+.categoryDot {
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--md-sys-shape-corner-full);
+	flex: 0 0 auto;
+	height: 10px;
+	width: 10px;
+}
+
+.group {
+	background: var(--md-sys-color-surface-container-low);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--md-sys-shape-corner-large);
+	display: grid;
+	gap: var(--space-3);
+	padding: var(--space-4);
+}
+
+.scroll {
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+}
+
+.group table {
+	border-collapse: separate;
+	border-spacing: 0;
+	min-width: 840px;
+	table-layout: fixed;
+	width: 100%;
+}
+
+.group :is(th, td) {
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+	font-size: var(--md-sys-typescale-body-small-size);
+	padding: var(--space-2) var(--space-3);
+	text-align: start;
+	vertical-align: top;
+}
+
+.group th {
+	color: var(--md-sys-color-on-surface-variant);
+	font-size: var(--md-sys-typescale-label-medium-size);
+	width: 88px;
+}
+
+.group th:first-child {
+	width: 224px;
+}
+
+.group th button {
+	align-items: center;
+	background: transparent;
+	border-radius: var(--md-sys-shape-corner-full);
+	display: inline-flex;
+	font: inherit;
+	font-weight: 700;
+	gap: var(--space-1);
+	margin: calc(var(--space-1) * -1);
+	min-height: 32px;
+	padding: var(--space-1) var(--space-2);
+}
+
+.group th button:is(:hover, :focus-visible) {
+	background: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-on-secondary-container);
+}
+
+.group th svg {
+	height: 14px;
+	width: 14px;
+}
+
+.group tbody tr {
+	background: var(--md-sys-color-surface-container-lowest);
+	transition:
+		background-color var(--md-sys-motion-duration-short),
+		opacity var(--md-sys-motion-duration-short);
+}
+
+.group tbody tr:is(:hover, :focus-visible) {
+	background: color-mix(in srgb, var(--md-sys-color-primary) 7%, var(--md-sys-color-surface-container-lowest));
+	outline: none;
+}
+
+.group tbody tr.selected {
+	background: var(--md-sys-color-primary-container);
+	box-shadow: inset 3px 0 var(--md-sys-color-primary);
+}
+
+.group tbody tr.searchDim,
+.group tbody tr.syncing {
+	opacity: 0.48;
+}
+
+.group tbody tr.searchMatch {
+	background: var(--md-sys-color-primary-container);
+}
+
+.group tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+.title {
+	display: grid;
+	gap: 2px;
+}
+
+.title strong {
+	font-size: var(--md-sys-typescale-body-medium-size);
+	overflow-wrap: anywhere;
+}
+
+.title :is(span, small) {
+	color: var(--md-sys-color-on-surface-variant);
+	line-height: var(--md-sys-typescale-body-small-line-height);
+	overflow-wrap: anywhere;
+}
+
+.title a {
+	color: var(--md-sys-color-primary);
+}
+
+.status {
+	background: var(--md-sys-color-secondary-container);
+	border-radius: var(--md-sys-shape-corner-full);
+	color: var(--md-sys-color-on-secondary-container);
+	display: inline-flex;
+	font-size: var(--md-sys-typescale-label-small-size);
+	font-weight: 700;
+	padding: 2px var(--space-2);
+	white-space: nowrap;
+}
+
+.statusDone {
+	background: var(--md-sys-color-success-container);
+	color: var(--md-sys-color-on-success-container);
+}
+
+.statusDoing {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.statusBacklog {
+	background: var(--md-sys-color-surface-container-highest);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.urgency {
+	align-items: center;
+	display: inline-flex;
+	gap: var(--space-1);
+}
+
+.urgency svg {
+	height: 14px;
+	width: 14px;
+}
+
+.urgency2 {
+	color: var(--em-color-orange);
+}
+
+.urgency3 {
+	color: var(--em-color-deep-orange);
+}
+
+.urgency4 {
+	color: var(--md-sys-color-error);
+}
+
+.empty {
+	align-items: center;
+	border: 1px dashed var(--md-sys-color-outline-variant);
+	border-radius: var(--md-sys-shape-corner-large);
+	color: var(--md-sys-color-on-surface-variant);
+	display: flex;
+	justify-content: center;
+	min-height: 120px;
+}

@@ -5,6 +5,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { Icon } from "../../../../shared/components/icon/Icon.js";
 import { calendarGrid, formatMonth, sameMonth } from "../../../../shared/utils/date-format.js";
 import type { PlacementTarget } from "../../models/workspace-model.js";
+import styles from "./MiniCalendar.module.css";
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -30,23 +31,23 @@ export function MiniCalendar({
 	const gridStyle = { "--calendar-week": selectedWeek } as CSSProperties;
 
 	return (
-		<section aria-label="月份" className={`mini-calendar${dragActive ? " is-drag-target" : ""}`} data-sprint-start={sprintStart}>
+		<section aria-label="月份" className={[styles.calendar, dragActive ? styles.dragTarget : ""].filter(Boolean).join(" ")} data-sprint-start={sprintStart}>
 			<header>
-				<button aria-label="上個月" className="mini-calendar__arrow" disabled={!interactive} onClick={() => setAnchor(changeMonth(anchor, -1))} type="button">
+				<button aria-label="上個月" className={styles.arrow} disabled={!interactive} onClick={() => setAnchor(changeMonth(anchor, -1))} type="button">
 					<Icon name="chevronLeft" />
 				</button>
-				<strong className="mini-calendar__month">{formatMonth(anchor)}</strong>
-				<button aria-label="下個月" className="mini-calendar__arrow" disabled={!interactive} onClick={() => setAnchor(changeMonth(anchor, 1))} type="button">
+				<strong className={styles.month}>{formatMonth(anchor)}</strong>
+				<button aria-label="下個月" className={styles.arrow} disabled={!interactive} onClick={() => setAnchor(changeMonth(anchor, 1))} type="button">
 					<Icon name="chevronRight" />
 				</button>
 			</header>
-			<div className={`mini-calendar__grid${cleared ? " is-cleared" : ""}`} role="grid" style={gridStyle}>
+			<div className={[styles.grid, cleared ? styles.cleared : ""].filter(Boolean).join(" ")} role="grid" style={gridStyle}>
 				{WEEKDAYS.map((day, index) => (
-					<span aria-hidden="true" className="mini-calendar__weekday" key={`${day}-${index}`}>
+					<span aria-hidden="true" className={styles.weekday} key={`${day}-${index}`}>
 						<span>{day}</span>
 					</span>
 				))}
-				<span aria-hidden="true" className="mini-calendar__selection" />
+				<span aria-hidden="true" className={styles.selection} />
 				{dates.map(date => (
 					<CalendarDay
 						anchor={anchor}
@@ -102,7 +103,15 @@ function CalendarDay({
 		<button
 			aria-label={dropEnabled ? `排到 ${date}` : date}
 			aria-pressed={inSprint}
-			className={`${sameMonth(date, anchor) ? "" : "is-outside"}${inSprint ? " is-current-sprint" : ""}${inSprint && cleared ? " is-cleared" : ""}${dropEnabled ? " is-drop-enabled" : ""}${isOver ? " is-drop-over" : ""}`}
+			className={[
+				sameMonth(date, anchor) ? "" : styles.outside,
+				inSprint ? styles.currentSprint : "",
+				inSprint && cleared ? styles.cleared : "",
+				dropEnabled ? styles.dropEnabled : "",
+				isOver ? styles.dropOver : ""
+			]
+				.filter(Boolean)
+				.join(" ")}
 			data-calendar-date={date}
 			disabled={!interactive}
 			onClick={() => onSelectSprint(startOfSprint(date))}

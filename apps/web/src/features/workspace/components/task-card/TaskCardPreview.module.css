@@ -1,0 +1,6 @@
+.meta {
+	display: flex;
+	flex-wrap: wrap;
+	font-size: var(--md-sys-typescale-label-small-size);
+	gap: var(--space-2);
+}

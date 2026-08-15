@@ -1,0 +1,44 @@
+.trash {
+	align-items: center;
+	animation: enter var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-decelerate);
+	background: var(--md-sys-color-surface-container-low);
+	border: 1px dashed var(--md-sys-color-outline-variant);
+	border-radius: var(--md-sys-shape-corner-large);
+	color: var(--md-sys-color-on-surface-variant);
+	display: flex;
+	font-size: var(--md-sys-typescale-label-medium-size);
+	font-weight: 600;
+	gap: var(--space-2);
+	justify-content: center;
+	min-height: 64px;
+	padding: var(--space-3);
+	transition:
+		background-color var(--md-sys-motion-duration-short),
+		border-color var(--md-sys-motion-duration-short),
+		color var(--md-sys-motion-duration-short),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+}
+
+@keyframes enter {
+	from {
+		opacity: 0;
+		transform: translateY(-8px);
+	}
+}
+
+.trash svg {
+	height: 20px;
+	width: 20px;
+}
+
+.active {
+	border-color: var(--md-sys-color-error);
+	color: var(--md-sys-color-error);
+}
+
+.over {
+	background: var(--md-sys-color-error-container);
+	border-color: var(--md-sys-color-error);
+	color: var(--md-sys-color-on-error-container);
+	transform: scale(1.03);
+}

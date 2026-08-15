@@ -2,6 +2,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import type { ReactNode } from "react";
 
 import { Icon } from "../icon/Icon.js";
+import styles from "./AppDialog.module.css";
 
 export function AppDialog({
 	children,
@@ -21,15 +22,15 @@ export function AppDialog({
 	return (
 		<Dialog.Root open={open} onOpenChange={onOpenChange}>
 			<Dialog.Portal>
-				<Dialog.Backdrop className="dialog-backdrop" />
-				<Dialog.Viewport className="dialog-viewport">
-					<Dialog.Popup className={`dialog-popup${wide ? " dialog-popup--wide" : ""}`}>
-						<header className="dialog-header">
+				<Dialog.Backdrop className={styles.backdrop} />
+				<Dialog.Viewport className={styles.viewport}>
+					<Dialog.Popup className={[styles.popup, wide ? styles.wide : ""].filter(Boolean).join(" ")}>
+						<header className={styles.header}>
 							<div>
-								<Dialog.Title className="dialog-title">{title}</Dialog.Title>
-								{description ? <Dialog.Description className="dialog-description">{description}</Dialog.Description> : null}
+								<Dialog.Title className={styles.title}>{title}</Dialog.Title>
+								{description ? <Dialog.Description className={styles.description}>{description}</Dialog.Description> : null}
 							</div>
-							<Dialog.Close aria-label="關閉" className="icon-button" title="關閉 (Esc)">
+							<Dialog.Close aria-label="關閉" className={styles.close} title="關閉 (Esc)">
 								<Icon name="close" />
 							</Dialog.Close>
 						</header>

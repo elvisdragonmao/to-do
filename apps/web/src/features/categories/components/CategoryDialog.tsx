@@ -3,10 +3,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
 import { AppDialog } from "../../../shared/components/app-dialog/AppDialog.js";
+import { Button } from "../../../shared/components/button/Button.js";
+import { Field } from "../../../shared/components/field/Field.js";
 import { Spinner } from "../../../shared/components/spinner/Spinner.js";
 import { useToast } from "../../../shared/components/toast/Toast.js";
 import { createCategory } from "../services/category-api.js";
 import { categoryMutationKeys, categoryQueryKeys } from "../services/category-queries.js";
+import styles from "./CategoryDialog.module.css";
 
 const COLORS = ["#A69697", "#DD8406", "#DC5002", "#282421", "#5A4943", "#356A25"];
 
@@ -34,21 +37,20 @@ export function CategoryDialog({ categories, onClose, open }: { categories: Cate
 
 	return (
 		<AppDialog onOpenChange={next => (next ? undefined : onClose())} open={open} title="分類">
-			<div className="category-list">
+			<div className={styles.list}>
 				{categories.map(category => (
-					<div className="category-row" key={category.id}>
+					<div className={styles.row} key={category.id}>
 						<i style={{ backgroundColor: category.color }} />
 						<span>{category.name}</span>
 						{category.isDefault ? <small>預設</small> : null}
 					</div>
 				))}
 			</div>
-			<form className="category-form" onSubmit={submit}>
-				<label className="field">
-					<span>新增分類</span>
+			<form className={styles.form} onSubmit={submit}>
+				<Field label="新增分類">
 					<input disabled={mutation.isPending} maxLength={40} onChange={event => setName(event.target.value)} value={name} />
-				</label>
-				<fieldset className="color-field">
+				</Field>
+				<fieldset className={styles.colors}>
 					<legend>顏色</legend>
 					{COLORS.map(option => (
 						<label key={option} style={{ backgroundColor: option }}>
@@ -57,10 +59,10 @@ export function CategoryDialog({ categories, onClose, open }: { categories: Cate
 						</label>
 					))}
 				</fieldset>
-				<button className="button button--filled-tonal" disabled={!name.trim() || mutation.isPending}>
+				<Button disabled={!name.trim() || mutation.isPending} type="submit" variant="tonal">
 					{mutation.isPending ? <Spinner label="建立分類中" size="small" /> : null}
 					建立分類
-				</button>
+				</Button>
 			</form>
 		</AppDialog>
 	);

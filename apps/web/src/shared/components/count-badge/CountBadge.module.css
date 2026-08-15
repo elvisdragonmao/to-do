@@ -1,0 +1,12 @@
+.badge {
+	align-items: center;
+	background: var(--md-sys-color-secondary-container);
+	border-radius: var(--md-sys-shape-corner-full);
+	color: var(--md-sys-color-on-secondary-container);
+	display: inline-flex;
+	font: var(--md-sys-typescale-label-small-weight) var(--md-sys-typescale-label-small-size) / var(--md-sys-typescale-label-small-line-height) var(--md-sys-typescale-label-small-font);
+	justify-content: center;
+	min-height: 18px;
+	min-width: 18px;
+	padding: 0 var(--space-1);
+}

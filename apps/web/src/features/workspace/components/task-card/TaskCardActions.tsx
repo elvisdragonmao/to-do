@@ -2,7 +2,7 @@ import type { Category } from "@em-todo/shared";
 
 import { Icon } from "../../../../shared/components/icon/Icon.js";
 import { CategoryTag } from "./CategoryTag.js";
-import styles from "./TaskCard.module.css";
+import styles from "./TaskCardActions.module.css";
 
 export function TaskCardActions({
 	categories,
@@ -21,7 +21,7 @@ export function TaskCardActions({
 }) {
 	const nextUrgency = urgency === 4 ? 1 : urgency + 1;
 	return (
-		<div className={styles.headerActions}>
+		<div className={styles.actions}>
 			<CategoryTag categories={categories} category={category} disabled={disabled} onChange={onCategoryChange} value={category?.id ?? ""} />
 			<button
 				aria-label={`緊急程度 ${urgency}，點擊調整為 ${nextUrgency}`}

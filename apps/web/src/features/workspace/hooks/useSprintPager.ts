@@ -5,7 +5,8 @@ export function useSprintPager(
 	sprintStart: string,
 	onNavigate: (sprintStart: string) => void,
 	onPreview?: (sprintStart: string) => void,
-	locked = false
+	locked = false,
+	active = true
 ): (direction: -1 | 1) => void {
 	const resetting = useRef(true);
 	const navigating = useRef(false);
@@ -22,6 +23,7 @@ export function useSprintPager(
 		[onPreview]
 	);
 	const resetToCurrentPage = useCallback(() => {
+		if (!active) return;
 		const element = ref.current;
 		if (!element) return;
 		const currentPage = sprintPages(element).find(page => page.dataset.sprintStart === sprintStart);
@@ -31,13 +33,13 @@ export function useSprintPager(
 		snapTargetSprint.current = null;
 		ignoreUntil.current = performance.now() + 350;
 		setPreviewSprint(sprintStart);
-		element.classList.add("is-resetting");
+		element.dataset.resetting = "";
 		element.scrollTop = currentPage.offsetTop;
 		return requestAnimationFrame(() => {
-			element.classList.remove("is-resetting");
+			delete element.dataset.resetting;
 			resetting.current = false;
 		});
-	}, [ref, setPreviewSprint, sprintStart]);
+	}, [active, ref, setPreviewSprint, sprintStart]);
 
 	useLayoutEffect(() => {
 		const frame = resetToCurrentPage();
@@ -48,6 +50,7 @@ export function useSprintPager(
 	useEffect(() => () => cancelAnimationFrame(programmaticScrollFrame.current), []);
 
 	useEffect(() => {
+		if (!active) return;
 		const element = ref.current;
 		if (!element) return;
 		let previousHeight = element.clientHeight;
@@ -64,9 +67,10 @@ export function useSprintPager(
 			cancelAnimationFrame(frame);
 			observer.disconnect();
 		};
-	}, [ref, resetToCurrentPage]);
+	}, [active, ref, resetToCurrentPage]);
 
 	useEffect(() => {
+		if (!active) return;
 		const element = ref.current;
 		if (!element) return;
 		let settleTimer = 0;
@@ -110,7 +114,7 @@ export function useSprintPager(
 		const onSnapChanging = (event: Event) => {
 			if (locked || resetting.current) return;
 			const target = (event as Event & { snapTargetBlock?: Element | null }).snapTargetBlock;
-			if (!(target instanceof HTMLElement) || !target.classList.contains("sprint-page")) return;
+			if (!(target instanceof HTMLElement) || !target.hasAttribute("data-sprint-page")) return;
 			const targetSprint = target.dataset.sprintStart;
 			if (!targetSprint) return;
 			snapTargetSprint.current = targetSprint;
@@ -127,12 +131,12 @@ export function useSprintPager(
 			element.removeEventListener("scrollend", settle);
 			element.removeEventListener("scrollsnapchanging", onSnapChanging);
 		};
-	}, [locked, onNavigate, ref, setPreviewSprint, sprintStart]);
+	}, [active, locked, onNavigate, ref, setPreviewSprint, sprintStart]);
 
 	return useCallback(
 		(direction: -1 | 1) => {
 			const element = ref.current;
-			if (!element || locked || navigating.current) return;
+			if (!active || !element || locked || navigating.current) return;
 			const pages = sprintPages(element);
 			const currentPageIndex = pages.findIndex(page => page.dataset.sprintStart === sprintStart);
 			const targetPage = pages[currentPageIndex + direction];
@@ -157,12 +161,12 @@ export function useSprintPager(
 			};
 			programmaticScrollFrame.current = requestAnimationFrame(step);
 		},
-		[locked, ref, setPreviewSprint, sprintStart]
+		[active, locked, ref, setPreviewSprint, sprintStart]
 	);
 }
 
 function sprintPages(element: HTMLElement): HTMLElement[] {
-	return Array.from(element.children).filter((child): child is HTMLElement => child instanceof HTMLElement && child.classList.contains("sprint-page"));
+	return Array.from(element.children).filter((child): child is HTMLElement => child instanceof HTMLElement && child.hasAttribute("data-sprint-page"));
 }
 
 function nearestPage(element: HTMLElement): HTMLElement | undefined {

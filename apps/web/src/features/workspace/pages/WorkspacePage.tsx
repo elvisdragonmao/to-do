@@ -13,28 +13,30 @@ import {
 	type DragOverEvent,
 	type DragStartEvent
 } from "@dnd-kit/core";
-import { useMutation, useMutationState, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutationState, useQueries, useQuery } from "@tanstack/react-query";
 import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { logout } from "../../auth/services/auth-api.js";
 import { CategoryDialog } from "../../categories/components/CategoryDialog.js";
 import { useCategoryMutations } from "../../categories/hooks/useCategoryMutations.js";
 import { categoriesQuery } from "../../categories/services/category-queries.js";
+import { Button } from "../../../shared/components/button/Button.js";
 import { Icon } from "../../../shared/components/icon/Icon.js";
 import { Spinner } from "../../../shared/components/spinner/Spinner.js";
 import { useTheme } from "../../../shared/hooks/useTheme.js";
-import { persister } from "../../../shared/services/query-client.js";
 import { formatSprintLabel } from "../../../shared/utils/date-format.js";
 import { MiniCalendar } from "../components/mini-calendar/MiniCalendar.js";
 import type { QuickCreateValues } from "../components/quick-create/QuickCreate.js";
 import { ShortcutDialog } from "../components/shortcut-dialog/ShortcutDialog.js";
 import { SprintPreviewPage } from "../components/sprint-board/SprintPreviewPage.js";
+import sprintPageStyles from "../components/sprint-board/SprintPage.module.css";
 import { TaskBoard, type DropProjection } from "../components/sprint-board/TaskBoard.js";
 import { SyncIndicator } from "../components/sync-indicator/SyncIndicator.js";
 import { TaskCardPreview } from "../components/task-card/TaskCardPreview.js";
 import { TaskListView } from "../components/task-list/TaskListView.js";
 import { TASK_TRASH_ID, TaskTrash } from "../components/task-trash/TaskTrash.js";
+import { UtilityDock } from "../components/utility-dock/UtilityDock.js";
+import { ViewToggle } from "../components/view-toggle/ViewToggle.js";
 import { WorkspaceSidebar } from "../components/workspace-sidebar/WorkspaceSidebar.js";
 import { useSprintPager } from "../hooks/useSprintPager.js";
 import { useTaskMutations } from "../hooks/useTaskMutations.js";
@@ -42,6 +44,7 @@ import { findDirectionalTask, useWorkspaceKeyboard } from "../hooks/useWorkspace
 import { adjacentSprint, createInputForTarget, numberedTargets, sortOrderBefore, tasksForTarget, updateForTarget, type PlacementTarget, type ViewMode } from "../models/workspace-model.js";
 import { allTasksQuery, backlogTasksQuery, sprintTasksQuery } from "../services/task-queries.js";
 import type { SyncState } from "../types/task.js";
+import styles from "./WorkspacePage.module.css";
 
 const collisionDetection: CollisionDetection = args => {
 	const pointerCollisions = pointerWithin(args);
@@ -140,13 +143,13 @@ export function WorkspacePage() {
 		goToSprint(todaySprint);
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
-				const currentPage = pagerRef.current?.querySelector<HTMLElement>(".sprint-page--current");
+				const currentPage = pagerRef.current?.querySelector<HTMLElement>("[data-sprint-current]");
 				if (currentPage && pagerRef.current) pagerRef.current.scrollTo({ behavior: "auto", top: currentPage.offsetTop });
 			});
 		});
 	}, [goToSprint]);
 	const dragging = activeTask !== null;
-	const goRelative = useSprintPager(pagerRef, sprintStart, goToSprint, setPreviewSprintStart, dragging);
+	const goRelative = useSprintPager(pagerRef, sprintStart, goToSprint, setPreviewSprintStart, dragging, view !== "list");
 	const forwardChromeWheel = useCallback(
 		(event: ReactWheelEvent<HTMLElement>) => {
 			const pager = pagerRef.current;
@@ -296,7 +299,7 @@ export function WorkspacePage() {
 	}, []);
 	const handleDragStart = useCallback((event: DragStartEvent) => {
 		const pager = pagerRef.current;
-		const currentPage = pager?.querySelector<HTMLElement>(".sprint-page--current");
+		const currentPage = pager?.querySelector<HTMLElement>("[data-sprint-current]");
 		if (pager && currentPage) pager.scrollTop = currentPage.offsetTop;
 		setProjection(null);
 		setTrashTargeted(false);
@@ -339,7 +342,7 @@ export function WorkspacePage() {
 			onDragStart={handleDragStart}
 			sensors={sensors}
 		>
-			<div className="app-shell">
+			<div className={styles.appShell}>
 				<WorkspaceSidebar
 					activeTarget={activeTarget}
 					categories={categories}
@@ -361,50 +364,59 @@ export function WorkspacePage() {
 					syncStates={syncStates}
 				/>
 
-				<main aria-label="Sprint" className="workspace" onWheel={forwardChromeWheel}>
-					<header className="top-app-bar">
-						<button aria-label="開啟 Backlog" className="mobile-menu" onClick={() => setSidebarOpen(true)} type="button">
+				<main aria-label="Sprint" className={styles.workspace} onWheel={forwardChromeWheel}>
+					<header className={styles.topBar}>
+						<button aria-label="開啟 Backlog" className={styles.mobileMenu} onClick={() => setSidebarOpen(true)} type="button">
 							<Icon name="menu" />
 						</button>
 						<h1>{formatSprintLabel(visibleSprintStart)}</h1>
-						<SyncIndicator />
+						<div className={styles.sync}>
+							<SyncIndicator />
+						</div>
 						<ViewToggle onChange={setView} value={view} />
-						<button aria-label="新增項目" className="mobile-create" onClick={beginTargeting} title="新增項目 (N)" type="button">
+						<button aria-label="新增項目" className={styles.mobileCreate} onClick={beginTargeting} title="新增項目 (N)" type="button">
 							<Icon name="add" />
 						</button>
 					</header>
 
-					<div className="workspace-body">
+					<div className={styles.body}>
 						{view === "list" ? (
 							allTasksResult.isPending && !allTasksResult.data ? (
-								<div aria-busy="true" className="content-state">
+								<div aria-busy="true" className={styles.contentState}>
 									<Spinner label="載入所有項目" />
 								</div>
 							) : allTasksResult.isError && !allTasksResult.data ? (
-								<div className="content-state" role="alert">
+								<div className={styles.contentState} role="alert">
 									<p>{allTasksResult.error.message}</p>
-									<button className="button button--filled-tonal" onClick={() => allTasksResult.refetch()} type="button">
+									<Button onClick={() => allTasksResult.refetch()} type="button" variant="tonal">
 										重試
-									</button>
+									</Button>
 								</div>
 							) : (
 								<TaskListView categories={categories} onSelect={taskId => selectTask(taskId)} searchMatches={searchMatches} selectedTaskId={selectedTaskId} syncStates={syncStates} tasks={allTasks} />
 							)
 						) : (
-							<section aria-label="Sprint 項目" className={`sprint-pager${dragging ? " is-dragging" : ""}`} ref={pagerRef}>
+							<section aria-label="Sprint 項目" className={[styles.pager, dragging ? styles.dragging : ""].filter(Boolean).join(" ")} ref={pagerRef}>
 								{pagerSprints.map((pageSprintStart, index) =>
 									pageSprintStart === sprintStart ? (
-										<section aria-label={`${formatSprintLabel(sprintStart)} 項目`} className="sprint-page sprint-page--current" data-sprint-start={sprintStart} key={pageSprintStart}>
+										<section
+											aria-label={`${formatSprintLabel(sprintStart)} 項目`}
+											className={sprintPageStyles.page}
+											data-sprint-current
+											data-sprint-page
+											data-sprint-start={sprintStart}
+											key={pageSprintStart}
+										>
 											{tasksQuery.isPending && !tasksQuery.data ? (
-												<div aria-busy="true" className="content-state">
+												<div aria-busy="true" className={styles.contentState}>
 													<Spinner label="載入中" />
 												</div>
 											) : tasksQuery.isError && !tasksQuery.data ? (
-												<div className="content-state" role="alert">
+												<div className={styles.contentState} role="alert">
 													<p>{tasksQuery.error.message}</p>
-													<button className="button button--filled-tonal" onClick={() => tasksQuery.refetch()} type="button">
+													<Button onClick={() => tasksQuery.refetch()} type="button" variant="tonal">
 														重試
-													</button>
+													</Button>
 												</div>
 											) : (
 												<TaskBoard
@@ -433,7 +445,7 @@ export function WorkspacePage() {
 								)}
 							</section>
 						)}
-						<div className={`workspace-rail${dragging ? " is-dragging" : ""}`}>
+						<div className={[styles.rail, dragging ? styles.railDragging : ""].filter(Boolean).join(" ")}>
 							<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={visibleSprintStart} tasks={visibleSprintTasks} />
 							{dragging ? <TaskTrash active /> : null}
 						</div>
@@ -461,54 +473,6 @@ function projectionFromOver(event: DragOverEvent | DragEndEvent): DropProjection
 	const data = event.over?.data.current as { target?: PlacementTarget; beforeTaskId?: string } | undefined;
 	if (!data?.target || data.beforeTaskId === String(event.active.id)) return null;
 	return { target: data.target, ...(data.beforeTaskId ? { beforeTaskId: data.beforeTaskId } : {}) };
-}
-
-function ViewToggle({ onChange, value }: { onChange: (view: ViewMode) => void; value: ViewMode }) {
-	return (
-		<div aria-label="切換 View" className="view-toggle" role="group">
-			<button aria-label="Kanban View" aria-pressed={value === "kanban"} onClick={() => onChange("kanban")} title="Kanban View (1)" type="button">
-				<Icon name="board" />
-			</button>
-			<button aria-label="星期 View" aria-pressed={value === "week"} onClick={() => onChange("week")} title="星期 View (2)" type="button">
-				<Icon name="list" />
-			</button>
-			<button aria-label="List View" aria-pressed={value === "list"} onClick={() => onChange("list")} title="List View (3)" type="button">
-				<Icon name="table" />
-			</button>
-		</div>
-	);
-}
-
-function UtilityDock({ onHelp, onTheme, theme }: { onHelp: () => void; onTheme: () => void; theme: "light" | "dark" }) {
-	return (
-		<div className="utility-dock">
-			<button aria-label="快捷鍵" onClick={onHelp} title="快捷鍵 (⌘/)" type="button">
-				<Icon name="help" />
-				<span>Help</span>
-			</button>
-			<button aria-label={theme === "dark" ? "切換亮色" : "切換暗色"} onClick={onTheme} type="button">
-				<Icon name={theme === "dark" ? "sun" : "moon"} />
-			</button>
-			<LogoutButton />
-		</div>
-	);
-}
-
-function LogoutButton() {
-	const client = useQueryClient();
-	const mutation = useMutation({
-		mutationFn: logout,
-		onSuccess: async () => {
-			client.clear();
-			await persister.removeClient();
-			window.location.assign("/login");
-		}
-	});
-	return (
-		<button aria-label="登出" disabled={mutation.isPending} onClick={() => mutation.mutate()} type="button">
-			{mutation.isPending ? <Spinner label="登出中" size="small" /> : <Icon name="logout" />}
-		</button>
-	);
 }
 
 function useSyncStates(): Map<string, SyncState> {

@@ -1,0 +1,47 @@
+.button {
+	align-items: center;
+	background: transparent;
+	border-radius: var(--md-sys-shape-corner-full);
+	display: inline-flex;
+	font: var(--md-sys-typescale-label-large-weight) var(--md-sys-typescale-label-large-size) / var(--md-sys-typescale-label-large-line-height) var(--md-sys-typescale-label-large-font);
+	gap: var(--space-2);
+	justify-content: center;
+	min-height: 40px;
+	padding: 0 var(--space-5);
+	transition:
+		background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+}
+
+.button:not(:disabled):active {
+	transform: scale(0.96);
+}
+
+.large {
+	min-height: 48px;
+}
+
+.filled {
+	background: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+}
+
+.tonal {
+	background: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-on-secondary-container);
+}
+
+.text {
+	color: var(--md-sys-color-primary);
+	padding-inline: var(--space-4);
+}
+
+.danger {
+	background: var(--md-sys-color-error);
+	color: var(--md-sys-color-on-error);
+}
+
+.textDanger {
+	color: var(--md-sys-color-error);
+	padding-inline: var(--space-4);
+}

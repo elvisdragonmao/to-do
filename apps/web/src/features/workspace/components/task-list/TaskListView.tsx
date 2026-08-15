@@ -1,10 +1,13 @@
 import type { Category, Task } from "@em-todo/shared";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 
+import { CountBadge } from "../../../../shared/components/count-badge/CountBadge.js";
 import { Icon } from "../../../../shared/components/icon/Icon.js";
 import { formatShortDate } from "../../../../shared/utils/date-format.js";
+import { linkify } from "../../../../shared/utils/linkify.js";
 import { sortTasks, type TaskSortDirection, type TaskSortKey } from "../../models/task-list-model.js";
 import type { SyncState } from "../../types/task.js";
+import styles from "./TaskListView.module.css";
 
 const STATUS_LABELS: Record<Task["status"], string> = {
 	TODO: "To Do",
@@ -63,19 +66,19 @@ export function TaskListView({
 	};
 
 	return (
-		<section aria-label="所有項目" className="task-list-view">
-			<header className="task-list-view__summary">
+		<section aria-label="所有項目" className={styles.view}>
+			<header className={styles.summary}>
 				<strong>所有項目</strong>
-				<span className="count-badge">{tasks.length}</span>
+				<CountBadge>{tasks.length}</CountBadge>
 			</header>
 			{groups.map(group => (
-				<section className="task-table-group" key={group.category.id}>
+				<section className={styles.group} key={group.category.id}>
 					<header>
-						<span className="category-dot" style={{ backgroundColor: group.category.color }} />
+						<span className={styles.categoryDot} style={{ backgroundColor: group.category.color }} />
 						<h2>{group.category.name}</h2>
-						<span className="count-badge">{group.tasks.length}</span>
+						<CountBadge>{group.tasks.length}</CountBadge>
 					</header>
-					<div className="task-table-scroll">
+					<div className={styles.scroll}>
 						<table>
 							<thead>
 								<tr>
@@ -100,7 +103,7 @@ export function TaskListView({
 					</div>
 				</section>
 			))}
-			{groups.length === 0 ? <div className="task-list-view__empty">沒有項目</div> : null}
+			{groups.length === 0 ? <div className={styles.empty}>沒有項目</div> : null}
 		</section>
 	);
 }
@@ -121,7 +124,9 @@ function TaskRow({ onSelect, searchMatch, selected, syncState, task }: { onSelec
 		<tr
 			aria-busy={Boolean(syncState)}
 			aria-selected={selected}
-			className={`${selected ? "is-selected" : ""}${searchMatch === true ? " is-search-match" : searchMatch === false ? " is-search-dim" : ""}${syncState ? " is-syncing" : ""}`}
+			className={[selected ? styles.selected : "", searchMatch === true ? styles.searchMatch : searchMatch === false ? styles.searchDim : "", syncState ? styles.syncing : ""]
+				.filter(Boolean)
+				.join(" ")}
 			data-task-card
 			data-task-id={task.id}
 			onClick={onSelect}
@@ -129,17 +134,17 @@ function TaskRow({ onSelect, searchMatch, selected, syncState, task }: { onSelec
 			tabIndex={0}
 		>
 			<td>
-				<div className="task-table__title">
+				<div className={styles.title}>
 					<strong>{task.title}</strong>
 					{task.description ? <span>{linkify(task.description)}</span> : null}
 					{syncState ? <small role="status">{syncState === "queued" ? "待同步" : syncState === "deleting" ? "刪除中" : "同步中"}</small> : null}
 				</div>
 			</td>
 			<td>
-				<span className={`task-status-chip task-status-chip--${task.isBacklog ? "backlog" : task.status.toLowerCase()}`}>{task.isBacklog ? "Backlog" : STATUS_LABELS[task.status]}</span>
+				<span className={[styles.status, statusClass(task)].filter(Boolean).join(" ")}>{task.isBacklog ? "Backlog" : STATUS_LABELS[task.status]}</span>
 			</td>
 			<td>
-				<span aria-label={`緊急程度 ${task.urgency}`} className={`task-table__urgency urgency-${task.urgency}`}>
+				<span aria-label={`緊急程度 ${task.urgency}`} className={[styles.urgency, styles[`urgency${task.urgency}`]].filter(Boolean).join(" ")}>
 					<Icon name="flag" />
 					{task.urgency}
 				</span>
@@ -159,14 +164,9 @@ function plannedLabel(task: Task): string {
 	return `${formatShortDate(task.sprintStart)} Sprint`;
 }
 
-function linkify(value: string): ReactNode[] {
-	return value.split(/(https?:\/\/[^\s]+)/g).map((part, index) =>
-		/^https?:\/\//.test(part) ? (
-			<a href={part} key={`${part}-${index}`} onClick={event => event.stopPropagation()} rel="noreferrer" target="_blank">
-				{part}
-			</a>
-		) : (
-			part
-		)
-	);
+function statusClass(task: Task): string | undefined {
+	if (task.isBacklog) return styles.statusBacklog;
+	if (task.status === "DONE") return styles.statusDone;
+	if (task.status === "DOING") return styles.statusDoing;
+	return undefined;
 }

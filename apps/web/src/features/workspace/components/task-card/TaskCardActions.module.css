@@ -1,0 +1,114 @@
+.actions {
+	align-items: center;
+	display: flex;
+	flex: 0 0 auto;
+	gap: var(--space-1);
+	max-width: min(52%, 172px);
+}
+
+.urgencyFlag {
+	color: var(--md-sys-color-on-surface-variant);
+	display: inline-flex;
+	flex: 0 0 auto;
+}
+
+.urgencyButton {
+	align-items: center;
+	background: transparent;
+	border-radius: var(--md-sys-shape-corner-full);
+	height: 28px;
+	justify-content: center;
+	transition:
+		background-color var(--md-sys-motion-duration-short),
+		color var(--md-sys-motion-duration-short),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+	width: 28px;
+}
+
+.urgencyButton:is(:hover, :focus-visible) {
+	background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.urgencyButton:active {
+	transform: scale(0.88);
+}
+
+.urgencyFlag svg {
+	height: 18px;
+	width: 18px;
+}
+
+.urgency1 {
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.urgency2 {
+	color: var(--em-color-orange);
+}
+
+.urgency3 {
+	color: var(--em-color-deep-orange);
+}
+
+.urgency4 {
+	color: var(--md-sys-color-error);
+}
+
+.categoryTag {
+	--task-category-color: var(--md-sys-color-outline);
+
+	align-items: center;
+	background: var(--md-sys-color-secondary-container);
+	border-radius: var(--md-sys-shape-corner-full);
+	color: var(--md-sys-color-on-secondary-container);
+	display: inline-flex;
+	font-size: var(--md-sys-typescale-label-small-size);
+	font-weight: 700;
+	gap: var(--space-1);
+	height: 28px;
+	max-width: 136px;
+	min-width: 0;
+	padding: 0 var(--space-2);
+	position: relative;
+}
+
+.categoryTag > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.categoryTag > svg {
+	flex: 0 0 auto;
+	height: 13px;
+	width: 13px;
+}
+
+.categoryTagInteractive {
+	cursor: pointer;
+	transition:
+		background-color var(--md-sys-motion-duration-short),
+		box-shadow var(--md-sys-motion-duration-short);
+}
+
+.categoryTagInteractive:is(:hover, :focus-within) {
+	background: color-mix(in srgb, var(--md-sys-color-primary) 13%, var(--md-sys-color-secondary-container));
+	box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+}
+
+.categoryTag select {
+	border: 0;
+	inset: 0;
+	opacity: 0;
+	outline: none;
+	position: absolute;
+	width: 100%;
+}
+
+.categoryDot {
+	background: var(--task-category-color);
+	border-radius: var(--md-sys-shape-corner-full);
+	flex: 0 0 auto;
+	height: 9px;
+	width: 9px;
+}

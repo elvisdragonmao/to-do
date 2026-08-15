@@ -1,5 +1,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 
+import styles from "./Toast.module.css";
+
 type ToastApi = { show: (message: string, tone?: "default" | "error") => void };
 const ToastContext = createContext<ToastApi | null>(null);
 
@@ -15,9 +17,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 	return (
 		<ToastContext.Provider value={api}>
 			{children}
-			<div aria-atomic="true" aria-live="polite" className="toast-region">
+			<div aria-atomic="true" aria-live="polite" className={styles.region}>
 				{toast ? (
-					<div className={`toast toast--${toast.tone}`} role="status">
+					<div className={[styles.toast, toast.tone === "error" ? styles.error : ""].filter(Boolean).join(" ")} role="status">
 						{toast.message}
 					</div>
 				) : null}

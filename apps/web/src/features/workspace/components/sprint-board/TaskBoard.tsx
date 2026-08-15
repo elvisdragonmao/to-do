@@ -2,12 +2,15 @@ import type { Category, Task, UpdateTaskInput } from "@em-todo/shared";
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 
+import { CountBadge } from "../../../../shared/components/count-badge/CountBadge.js";
 import { Icon } from "../../../../shared/components/icon/Icon.js";
+import { TargetKey } from "../../../../shared/components/target-key/TargetKey.js";
 import { formatDay } from "../../../../shared/utils/date-format.js";
 import { QuickCreate, type QuickCreateValues } from "../quick-create/QuickCreate.js";
 import { TaskCard } from "../task-card/TaskCard.js";
 import { STATUS_TARGETS, tasksForTarget, weekTargets, type NumberedTarget, type PlacementTarget, type ViewMode } from "../../models/workspace-model.js";
 import type { SyncState } from "../../types/task.js";
+import styles from "./TaskBoard.module.css";
 
 export type DropProjection = { target: PlacementTarget; beforeTaskId?: string } | null;
 
@@ -33,7 +36,7 @@ type TaskBoardProps = {
 export function TaskBoard(props: TaskBoardProps) {
 	const targets = props.view === "kanban" ? STATUS_TARGETS : weekTargets(props.sprintStart);
 	return (
-		<div aria-label={props.view === "kanban" ? "Kanban" : "星期"} className={`task-board task-board--${props.view}`}>
+		<div aria-label={props.view === "kanban" ? "Kanban" : "星期"} className={[styles.board, props.view === "kanban" ? styles.kanban : styles.week].join(" ")}>
 			{targets.map(target => (
 				<BoardColumn {...props} key={target.id} target={target} />
 			))}
@@ -67,20 +70,20 @@ function BoardColumn({
 	const projectedHere = projection?.target.id === target.id;
 
 	return (
-		<section className={`board-column${isOver ? " board-column--over" : ""}`} data-target-id={target.id} ref={setNodeRef}>
-			<header className="board-column__header">
+		<section className={[styles.column, isOver ? styles.over : ""].filter(Boolean).join(" ")} data-target-id={target.id} ref={setNodeRef}>
+			<header className={styles.header}>
 				<div>
 					<h2>{title}</h2>
 					{supporting ? <span>{supporting}</span> : null}
 				</div>
-				<span className="count-badge">{targetTasks.length}</span>
-				<button aria-label={`新增到 ${title}`} className="column-add" onClick={() => onStartCreate(target)} title={`新增到 ${title}`} type="button">
+				<CountBadge>{targetTasks.length}</CountBadge>
+				<button aria-label={`新增到 ${title}`} className={styles.add} onClick={() => onStartCreate(target)} title={`新增到 ${title}`} type="button">
 					<Icon name="add" />
 				</button>
-				{targeting && shortcut !== undefined ? <kbd className="target-key">{shortcut}</kbd> : null}
+				{targeting && shortcut !== undefined ? <TargetKey>{shortcut}</TargetKey> : null}
 			</header>
 
-			<div className="board-column__tasks">
+			<div className={styles.tasks}>
 				{activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={onCancelCreate} onCreate={values => onCreate(target, values)} /> : null}
 				{targetTasks.map(task => (
 					<TaskDropSlot beforeTaskId={task.id} key={task.id} projected={Boolean(projectedHere && projection?.beforeTaskId === task.id)} target={target}>
@@ -100,7 +103,7 @@ function BoardColumn({
 				))}
 				{projectedHere && !projection?.beforeTaskId ? <DropPlaceholder /> : null}
 				{targetTasks.length === 0 && !activeTarget && !projectedHere ? (
-					<button className="empty-column" onClick={() => onStartCreate(target)} type="button">
+					<button className={styles.empty} onClick={() => onStartCreate(target)} type="button">
 						<Icon name="add" />
 						新增
 					</button>
@@ -113,7 +116,7 @@ function BoardColumn({
 function TaskDropSlot({ beforeTaskId, children, projected, target }: { beforeTaskId: string; children: ReactNode; projected: boolean; target: PlacementTarget }) {
 	const { setNodeRef } = useDroppable({ id: `slot:${target.id}:${beforeTaskId}`, data: { type: "slot", target, beforeTaskId } });
 	return (
-		<div className="task-drop-slot" ref={setNodeRef}>
+		<div className={styles.dropSlot} ref={setNodeRef}>
 			{projected ? <DropPlaceholder /> : null}
 			{children}
 		</div>
@@ -121,5 +124,5 @@ function TaskDropSlot({ beforeTaskId, children, projected, target }: { beforeTas
 }
 
 function DropPlaceholder() {
-	return <div aria-hidden="true" className="drop-placeholder" />;
+	return <div aria-hidden="true" className={styles.placeholder} />;
 }

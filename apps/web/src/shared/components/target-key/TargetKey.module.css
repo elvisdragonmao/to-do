@@ -1,0 +1,17 @@
+.key {
+	align-items: center;
+	background: var(--md-sys-color-primary);
+	border: 0;
+	border-radius: var(--md-sys-shape-corner-full);
+	color: var(--md-sys-color-on-primary);
+	display: flex;
+	font-family: inherit;
+	font-size: var(--md-sys-typescale-label-large-size);
+	height: 28px;
+	justify-content: center;
+	position: absolute;
+	right: -10px;
+	top: -10px;
+	width: 28px;
+	z-index: 4;
+}

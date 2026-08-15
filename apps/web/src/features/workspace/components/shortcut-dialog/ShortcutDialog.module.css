@@ -1,0 +1,28 @@
+.list {
+	display: grid;
+	gap: var(--space-2);
+	margin: 0;
+}
+
+.list > div {
+	align-items: center;
+	display: grid;
+	gap: var(--space-4);
+	grid-template-columns: minmax(104px, auto) 1fr;
+	min-height: 40px;
+}
+
+.list :is(dt, dd) {
+	margin: 0;
+}
+
+.list kbd {
+	background: var(--md-sys-color-surface-container-highest);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--md-sys-shape-corner-extra-small);
+	display: inline-block;
+	font: inherit;
+	min-width: 26px;
+	padding: 1px var(--space-2);
+	text-align: center;
+}

@@ -1,0 +1,135 @@
+.calendar {
+	align-self: start;
+	background: var(--md-sys-color-surface-container-low);
+	border-radius: var(--md-sys-shape-corner-large);
+	display: grid;
+	font-family: var(--md-ref-typeface-plain);
+	gap: var(--space-3);
+	padding: var(--space-3);
+	position: relative;
+	transition:
+		background-color var(--md-sys-motion-duration-short),
+		box-shadow var(--md-sys-motion-duration-short);
+}
+
+.dragTarget {
+	background: var(--md-sys-color-surface-container);
+	box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+}
+
+.calendar header {
+	align-items: center;
+	display: grid;
+	font-size: var(--md-sys-typescale-label-medium-size);
+	grid-template-columns: 32px 1fr 32px;
+	line-height: 1;
+	min-height: 32px;
+	text-align: center;
+}
+
+.month {
+	align-items: center;
+	display: flex;
+	height: 32px;
+	justify-content: center;
+	line-height: 1;
+}
+
+.arrow {
+	align-items: center;
+	background: transparent;
+	border-radius: var(--md-sys-shape-corner-full);
+	display: flex;
+	height: 32px;
+	justify-content: center;
+	width: 32px;
+}
+
+.arrow svg {
+	height: 14px;
+	width: 14px;
+}
+
+.grid {
+	display: grid;
+	gap: 2px;
+	grid-template-columns: repeat(7, 1fr);
+	position: relative;
+}
+
+.weekday,
+.grid button {
+	align-items: center;
+	background: transparent;
+	border-radius: var(--md-sys-shape-corner-extra-small);
+	display: flex;
+	font-size: 0.625rem;
+	font-variant-numeric: tabular-nums;
+	height: 20px;
+	justify-content: center;
+	line-height: 1;
+	min-width: 0;
+	padding: 0;
+	position: relative;
+	transition:
+		background-color var(--md-sys-motion-duration-short),
+		box-shadow var(--md-sys-motion-duration-short),
+		color var(--md-sys-motion-duration-short),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+	z-index: 1;
+}
+
+.weekday > span,
+.grid button > span {
+	display: block;
+	line-height: 1;
+	transform: translateY(-1px);
+}
+
+.weekday {
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.grid button.outside {
+	color: var(--md-sys-color-outline);
+}
+
+.grid button.currentSprint {
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.grid button.cleared {
+	color: var(--md-sys-color-on-success-container);
+}
+
+.grid button.dropEnabled {
+	cursor: copy;
+}
+
+.grid button.dropOver {
+	background: var(--md-sys-color-primary);
+	box-shadow: 0 2px 8px color-mix(in srgb, var(--md-sys-color-primary) 32%, transparent);
+	color: var(--md-sys-color-on-primary);
+	transform: scale(1.16);
+	z-index: 3;
+}
+
+.selection {
+	background: var(--md-sys-color-primary-container);
+	border-radius: var(--md-sys-shape-corner-small);
+	height: 22px;
+	left: 0;
+	pointer-events: none;
+	position: absolute;
+	right: 0;
+	top: 21px;
+	transform: translateY(calc(var(--calendar-week) * 22px));
+	transition:
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-decelerate),
+		background-color var(--md-sys-motion-duration-short);
+	will-change: transform;
+}
+
+.grid.cleared .selection {
+	background: var(--md-sys-color-success-container);
+}

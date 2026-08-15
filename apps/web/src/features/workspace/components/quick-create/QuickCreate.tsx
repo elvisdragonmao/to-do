@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { parseCompactDate } from "../../../../shared/utils/date-format.js";
+import styles from "./QuickCreate.module.css";
 
 export type QuickCreateValues = {
 	title: string;
@@ -43,8 +44,8 @@ export function QuickCreate({ label, onCancel, onCreate }: { label: string; onCa
 	};
 
 	return (
-		<form aria-label={`新增到 ${label}`} className="quick-create" onKeyDown={handleKeyDown} onSubmit={submit}>
-			<div className="quick-create__target">{label}</div>
+		<form aria-label={`新增到 ${label}`} className={styles.form} onKeyDown={handleKeyDown} onSubmit={submit}>
+			<div className={styles.target}>{label}</div>
 			<label>
 				<span className="sr-only">標題</span>
 				<input
@@ -67,7 +68,7 @@ export function QuickCreate({ label, onCancel, onCreate }: { label: string; onCa
 					<textarea maxLength={4000} onChange={event => setDescription(event.target.value)} placeholder="描述" ref={descriptionRef} rows={2} value={description} />
 				</label>
 			) : null}
-			<div className="quick-create__details">
+			<div className={styles.details}>
 				<label>
 					<span className="sr-only">預計時間（小時）</span>
 					<input inputMode="decimal" min="0" onChange={event => setHours(event.target.value)} placeholder="小時" step="0.25" type="number" value={hours} />
@@ -78,7 +79,7 @@ export function QuickCreate({ label, onCancel, onCreate }: { label: string; onCa
 				</label>
 			</div>
 			{error ? (
-				<p className="quick-create__error" role="alert">
+				<p className={styles.error} role="alert">
 					{error}
 				</p>
 			) : null}
