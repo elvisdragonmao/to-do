@@ -1,6 +1,6 @@
 import { type CreateCategoryInput, type UpdateCategoryInput, categoriesResponseSchema, categorySchema } from "@em-todo/shared";
 
-import { apiRequest } from "../../../shared/services/api-client.js";
+import { apiRequest } from "@/shared/services/api-client.js";
 
 export async function getCategories(signal?: AbortSignal) {
 	const data = await apiRequest("/api/categories", categoriesResponseSchema, { signal });

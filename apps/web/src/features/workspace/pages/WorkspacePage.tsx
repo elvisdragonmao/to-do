@@ -1,4 +1,4 @@
-import { addDays, isoDateSchema, startOfSprint, type CreateTaskInput, type Task, type UpdateTaskInput } from "@em-todo/shared";
+import { addDays, isoDateSchema, startOfSprint, type Category, type CreateTaskInput, type Task, type UpdateCategoryInput, type UpdateTaskInput } from "@em-todo/shared";
 import {
 	closestCenter,
 	DndContext,
@@ -17,14 +17,15 @@ import { useMutationState, useQueries, useQuery } from "@tanstack/react-query";
 import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { CategoryDialog } from "../../categories/components/CategoryDialog.js";
-import { useCategoryMutations } from "../../categories/hooks/useCategoryMutations.js";
-import { categoriesQuery } from "../../categories/services/category-queries.js";
-import { Button } from "../../../shared/components/button/Button.js";
-import { Icon } from "../../../shared/components/icon/Icon.js";
-import { Spinner } from "../../../shared/components/spinner/Spinner.js";
-import { useTheme } from "../../../shared/hooks/useTheme.js";
-import { formatSprintLabel } from "../../../shared/utils/date-format.js";
+import { CategoryDialog } from "@/features/categories/components/CategoryDialog.js";
+import { useCategoryMutations } from "@/features/categories/hooks/useCategoryMutations.js";
+import { categorySortOrderAfterMove } from "@/features/categories/models/category-order.js";
+import { categoriesQuery } from "@/features/categories/services/category-queries.js";
+import { Button } from "@/shared/components/button/Button.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
+import { Spinner } from "@/shared/components/spinner/Spinner.js";
+import { useTheme } from "@/shared/hooks/useTheme.js";
+import { formatSprintLabel } from "@/shared/utils/date-format.js";
 import { MiniCalendar } from "../components/mini-calendar/MiniCalendar.js";
 import type { QuickCreateValues } from "../components/quick-create/QuickCreate.js";
 import { ShortcutDialog } from "../components/shortcut-dialog/ShortcutDialog.js";
@@ -37,7 +38,7 @@ import { TaskListView } from "../components/task-list/TaskListView.js";
 import { TASK_TRASH_ID, TaskTrash } from "../components/task-trash/TaskTrash.js";
 import { UtilityDock } from "../components/utility-dock/UtilityDock.js";
 import { ViewToggle } from "../components/view-toggle/ViewToggle.js";
-import { WorkspaceSidebar } from "../components/workspace-sidebar/WorkspaceSidebar.js";
+import { CategoryDragPreview, WorkspaceSidebar } from "../components/workspace-sidebar/WorkspaceSidebar.js";
 import { useSprintPager } from "../hooks/useSprintPager.js";
 import { useTaskMutations } from "../hooks/useTaskMutations.js";
 import { findDirectionalTask, useWorkspaceKeyboard } from "../hooks/useWorkspaceKeyboard.js";
@@ -47,8 +48,15 @@ import type { SyncState } from "../types/task.js";
 import styles from "./WorkspacePage.module.css";
 
 const collisionDetection: CollisionDetection = args => {
-	const pointerCollisions = pointerWithin(args);
-	if (pointerCollisions.length === 0) return args.pointerCoordinates ? [] : closestCenter(args);
+	if (args.active.data.current?.type === "category-sort") {
+		return closestCenter({
+			...args,
+			droppableContainers: args.droppableContainers.filter(container => container.data.current?.type === "category-sort-target")
+		});
+	}
+	const taskContainers = args.droppableContainers.filter(container => container.data.current?.type !== "category-sort-target");
+	const pointerCollisions = pointerWithin({ ...args, droppableContainers: taskContainers });
+	if (pointerCollisions.length === 0) return args.pointerCoordinates ? [] : closestCenter({ ...args, droppableContainers: taskContainers });
 	const typeFor = (id: string | number) => args.droppableContainers.find(container => container.id === id)?.data.current?.type;
 	return pointerCollisions.toSorted((left, right) => collisionPriority(typeFor(left.id)) - collisionPriority(typeFor(right.id)));
 };
@@ -94,6 +102,8 @@ export function WorkspacePage() {
 	const [targeting, setTargeting] = useState(false);
 	const [activeTarget, setActiveTarget] = useState<PlacementTarget | null>(null);
 	const [activeTask, setActiveTask] = useState<Task | null>(null);
+	const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+	const [categoryDropTargetId, setCategoryDropTargetId] = useState<string | null>(null);
 	const [projection, setProjection] = useState<DropProjection>(null);
 	const [trashTargeted, setTrashTargeted] = useState(false);
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -294,11 +304,24 @@ export function WorkspacePage() {
 
 	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
 	const handleDragOver = useCallback((event: DragOverEvent) => {
+		if (event.active.data.current?.type === "category-sort") {
+			setCategoryDropTargetId((event.over?.data.current?.categoryId as string | undefined) ?? null);
+			return;
+		}
 		const overTrash = event.over?.id === TASK_TRASH_ID;
 		setTrashTargeted(overTrash);
 		setProjection(overTrash ? null : projectionFromOver(event));
 	}, []);
 	const handleDragStart = useCallback((event: DragStartEvent) => {
+		if (event.active.data.current?.type === "category-sort") {
+			const category = event.active.data.current.category as Category;
+			setActiveCategory(category);
+			setCategoryDropTargetId(category.id);
+			setActiveTask(null);
+			setProjection(null);
+			setTrashTargeted(false);
+			return;
+		}
 		const pager = pagerRef.current;
 		const currentPage = pager?.querySelector<HTMLElement>("[data-sprint-current]");
 		if (pager && currentPage) pager.scrollTop = currentPage.offsetTop;
@@ -307,6 +330,16 @@ export function WorkspacePage() {
 		setActiveTask(event.active.data.current?.task as Task);
 	}, []);
 	const handleDragEnd = (event: DragEndEvent) => {
+		if (event.active.data.current?.type === "category-sort") {
+			const category = event.active.data.current.category as Category | undefined;
+			const overCategoryId = event.over?.data.current?.categoryId as string | undefined;
+			setActiveCategory(null);
+			setCategoryDropTargetId(null);
+			if (!category || !overCategoryId) return;
+			const sortOrder = categorySortOrderAfterMove(categories, category.id, overCategoryId);
+			if (sortOrder !== null) categoryMutations.update.mutate({ categoryId: category.id, input: { sortOrder } });
+			return;
+		}
 		const task = event.active.data.current?.task as Task | undefined;
 		const overTrash = event.over?.id === TASK_TRASH_ID;
 		const next = projectionFromOver(event);
@@ -334,6 +367,8 @@ export function WorkspacePage() {
 			autoScroll={false}
 			collisionDetection={collisionDetection}
 			onDragCancel={() => {
+				setActiveCategory(null);
+				setCategoryDropTargetId(null);
 				setActiveTask(null);
 				setProjection(null);
 				setTrashTargeted(false);
@@ -345,18 +380,20 @@ export function WorkspacePage() {
 		>
 			<div className={styles.appShell}>
 				<WorkspaceSidebar
+					activeCategoryId={activeCategory?.id ?? null}
 					activeTaskId={activeTask?.id ?? null}
 					activeTarget={activeTarget}
 					categories={categories}
+					categoryDropTargetId={categoryDropTargetId}
 					numbered={numbered}
 					onAddCategory={() => setCategoriesOpen(true)}
 					onCancelCreate={cancelCreate}
-					onChangeCategoryColor={(categoryId, color) => categoryMutations.updateColor.mutate({ categoryId, color })}
 					onClose={() => setSidebarOpen(false)}
 					onCreate={createTask}
 					onSearch={setSearch}
 					onSelectTask={selectBacklogTask}
 					onStartCreate={startCreate}
+					onUpdateCategory={(categoryId: string, input: UpdateCategoryInput) => categoryMutations.update.mutate({ categoryId, input })}
 					open={sidebarOpen}
 					projection={projection}
 					search={search}
@@ -469,7 +506,9 @@ export function WorkspacePage() {
 			<CategoryDialog categories={categories} onClose={() => setCategoriesOpen(false)} open={categoriesOpen} />
 			<ShortcutDialog onClose={() => setShortcutsOpen(false)} open={shortcutsOpen} />
 			<DragOverlay dropAnimation={null}>
-				{activeTask ? (
+				{activeCategory ? (
+					<CategoryDragPreview category={activeCategory} />
+				) : activeTask ? (
 					<TaskCardPreview
 						category={categories.find(category => category.id === activeTask.categoryId)}
 						railTargeted={trashTargeted || Boolean(projection?.target.id.startsWith("calendar:"))}

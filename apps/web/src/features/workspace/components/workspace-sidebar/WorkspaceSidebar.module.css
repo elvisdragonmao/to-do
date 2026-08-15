@@ -101,7 +101,7 @@
 
 .groups {
 	display: grid;
-	gap: var(--space-4);
+	gap: var(--space-3);
 }
 
 .group {
@@ -110,13 +110,28 @@
 	gap: var(--space-1);
 	min-width: 0;
 	position: relative;
-	transition: background-color var(--md-sys-motion-duration-short);
+	transition:
+		background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-standard),
+		box-shadow var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-standard),
+		opacity var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-standard),
+		transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized);
 }
 
 .groupOver {
 	background: var(--md-sys-color-primary-container);
 	box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
 	padding: var(--space-2);
+}
+
+.categoryDropTarget {
+	background: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+	box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
+	transform: scale(1.015);
+}
+
+.categoryDragging {
+	opacity: 0.24;
+	transform: scale(0.985);
 }
 
 .group > header {
@@ -143,23 +158,85 @@
 	width: 10px;
 }
 
-.group header > button {
+.dragHandle,
+.collapse,
+.addTask {
 	align-items: center;
-	background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+	background: transparent;
 	border-radius: var(--md-sys-shape-corner-full);
 	display: flex;
-	height: 32px;
+	flex: 0 0 auto;
+	height: 28px;
 	justify-content: center;
-	margin-inline-start: auto;
-	width: 32px;
+	transition:
+		background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+	width: 28px;
 }
 
-.group header > button svg {
+.dragHandle:is(:hover, :focus-visible),
+.collapse:is(:hover, :focus-visible),
+.addTask:is(:hover, :focus-visible) {
+	background: color-mix(in srgb, var(--md-sys-color-on-surface) 9%, transparent);
+}
+
+.dragHandle:active,
+.collapse:active,
+.addTask:active {
+	transform: scale(0.9);
+}
+
+.dragHandle {
+	cursor: grab;
+	touch-action: none;
+}
+
+.dragHandle:active {
+	cursor: grabbing;
+}
+
+.dragHandle svg,
+.collapse svg {
+	height: 16px;
+	width: 16px;
+}
+
+.addTask svg {
 	height: 18px;
 	width: 18px;
 }
 
+.collapse svg {
+	transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized);
+}
+
+.categoryContent {
+	display: grid;
+	grid-template-rows: 1fr;
+	opacity: 1;
+	transform: translateY(0);
+	transition:
+		grid-template-rows var(--md-sys-motion-duration-long) var(--md-sys-motion-easing-emphasized),
+		opacity var(--md-sys-motion-duration-enter) var(--md-sys-motion-easing-decelerate),
+		transform var(--md-sys-motion-duration-long) var(--md-sys-motion-easing-emphasized);
+}
+
+.categoryContentCollapsed {
+	grid-template-rows: 0fr;
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-6px);
+}
+
+.categoryContentInner {
+	display: grid;
+	gap: var(--space-2);
+	min-height: 0;
+	overflow: hidden;
+}
+
 .task {
+	animation: backlog-item-enter var(--md-sys-motion-duration-enter) var(--md-sys-motion-easing-decelerate) both;
 	background: var(--md-sys-color-surface-container-highest);
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--md-sys-shape-corner-small);
@@ -230,7 +307,46 @@
 	border: 1px dashed var(--md-sys-color-outline);
 	border-radius: var(--md-sys-shape-corner-large);
 	min-height: 44px;
+	transition:
+		background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-standard),
+		border-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-standard),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
 	width: 100%;
+}
+
+.addCategory:hover {
+	background: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+	border-color: var(--md-sys-color-primary);
+}
+
+.addCategory:active {
+	transform: scale(0.98);
+}
+
+.categoryPreview {
+	align-items: center;
+	background: var(--md-sys-color-surface-container-high);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--md-sys-shape-corner-medium);
+	box-shadow: 0 12px 24px color-mix(in srgb, var(--md-sys-color-shadow) 20%, transparent);
+	display: flex;
+	gap: var(--space-2);
+	min-height: 44px;
+	padding: 0 var(--space-3);
+	width: 248px;
+}
+
+.categoryPreview > svg {
+	color: var(--md-sys-color-on-surface-variant);
+	height: 16px;
+	width: 16px;
+}
+
+@keyframes backlog-item-enter {
+	from {
+		opacity: 0;
+		transform: translateY(-8px) scale(0.98);
+	}
 }
 
 .scrim {
@@ -247,7 +363,7 @@
 		position: fixed;
 		top: 0;
 		transform: translateX(calc(-100% - 24px));
-		transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized);
+		transition: transform var(--md-sys-motion-duration-long) var(--md-sys-motion-easing-emphasized);
 		width: min(92vw, 360px);
 	}
 
@@ -266,13 +382,15 @@
 		opacity: 0;
 		pointer-events: none;
 		position: fixed;
-		transition: opacity var(--md-sys-motion-duration-short);
+		transition: opacity var(--md-sys-motion-duration-exit) var(--md-sys-motion-easing-accelerate);
 		z-index: 29;
 	}
 
 	.scrim.open {
 		opacity: 1;
 		pointer-events: auto;
+		transition-duration: var(--md-sys-motion-duration-enter);
+		transition-timing-function: var(--md-sys-motion-easing-decelerate);
 	}
 }
 

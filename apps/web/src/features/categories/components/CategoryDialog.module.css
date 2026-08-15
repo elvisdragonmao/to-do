@@ -6,9 +6,17 @@
 
 .row {
 	align-items: center;
+	animation: category-row-enter var(--md-sys-motion-duration-enter) var(--md-sys-motion-easing-decelerate) both;
 	display: flex;
 	gap: var(--space-3);
 	min-height: 40px;
+}
+
+@keyframes category-row-enter {
+	from {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
 }
 
 .row i {
@@ -32,8 +40,9 @@
 
 .colors {
 	border: 0;
-	display: flex;
+	display: grid;
 	gap: var(--space-2);
+	grid-template-columns: repeat(8, 32px);
 	margin: 0;
 	padding: 0;
 }
@@ -41,6 +50,7 @@
 .colors legend {
 	color: var(--md-sys-color-on-surface-variant);
 	font: var(--md-sys-typescale-label-medium-weight) var(--md-sys-typescale-label-medium-size) / var(--md-sys-typescale-label-medium-line-height) var(--md-sys-typescale-label-medium-font);
+	grid-column: 1 / -1;
 	margin-bottom: var(--space-2);
 }
 

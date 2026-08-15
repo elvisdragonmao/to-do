@@ -103,9 +103,16 @@ export const createCategorySchema = z.object({
 	color: z.string().regex(/^#[0-9a-fA-F]{6}$/)
 });
 
-export const updateCategorySchema = z.object({
-	color: z.string().regex(/^#[0-9a-fA-F]{6}$/)
-});
+export const updateCategorySchema = z
+	.object({
+		name: z.string().trim().min(1, "請輸入分類名稱").max(40).optional(),
+		color: z
+			.string()
+			.regex(/^#[0-9a-fA-F]{6}$/)
+			.optional(),
+		sortOrder: z.number().finite().optional()
+	})
+	.refine(value => Object.values(value).some(item => item !== undefined), "沒有可更新的欄位");
 
 export const loginRequestSchema = z.object({
 	password: z.string().min(1, "請輸入密碼").max(512)

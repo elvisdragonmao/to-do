@@ -107,7 +107,7 @@ describe("EM's To Do API", () => {
 		expect(reopened.json().completedDate).toBeNull();
 	});
 
-	it("updates a category color", async () => {
+	it("updates a category title, color, and order", async () => {
 		const created = await app.inject({
 			method: "POST",
 			url: "/api/categories",
@@ -119,11 +119,14 @@ describe("EM's To Do API", () => {
 			method: "PATCH",
 			url: `/api/categories/${created.json().id}`,
 			headers: { cookie, "x-em-todo-request": "web" },
-			payload: { color: "#DC5002" }
+			payload: { name: "Deep work", color: "#E53935", sortOrder: -1024 }
 		});
 
 		expect(updated.statusCode).toBe(200);
-		expect(updated.json()).toMatchObject({ name: "Study", color: "#DC5002" });
+		expect(updated.json()).toMatchObject({ name: "Deep work", color: "#E53935", sortOrder: -1024 });
+
+		const categories = await app.inject({ method: "GET", url: "/api/categories", headers: { cookie } });
+		expect(categories.json().categories.map((category: { name: string }) => category.name)).toEqual(["Deep work", "未分類"]);
 	});
 
 	it("separates unassigned backlog tasks from sprint and all-task lists", async () => {

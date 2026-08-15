@@ -38,6 +38,7 @@
 	--md-sys-color-inverse-on-surface: #f1f2f5;
 	--md-sys-color-inverse-primary: #ffb692;
 	--md-sys-color-scrim: #000000;
+	--md-sys-color-shadow: #000000;
 	--md-sys-color-success: #006781;
 	--md-sys-color-on-success: #ffffff;
 	--md-sys-color-success-container: #d9edf4;
@@ -101,9 +102,14 @@
 	--md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
 	--md-sys-motion-easing-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
 	--md-sys-motion-easing-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
-	--md-sys-motion-duration-short: 150ms;
+	--md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+	--md-sys-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+	--md-sys-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+	--md-sys-motion-duration-short: 200ms;
 	--md-sys-motion-duration-medium: 300ms;
 	--md-sys-motion-duration-long: 500ms;
+	--md-sys-motion-duration-enter: 400ms;
+	--md-sys-motion-duration-exit: 200ms;
 
 	--space-1: 4px;
 	--space-2: 8px;

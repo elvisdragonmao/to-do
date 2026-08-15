@@ -1,31 +1,33 @@
-import type { Category, Task } from "@em-todo/shared";
+import type { Category, Task, UpdateCategoryInput } from "@em-todo/shared";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import type { ReactNode, RefObject } from "react";
+import { useCallback, useState, type ReactNode, type RefObject } from "react";
 
-import { CategoryColorMenu } from "../../../categories/components/CategoryColorMenu.js";
-import { CountBadge } from "../../../../shared/components/count-badge/CountBadge.js";
-import { Icon } from "../../../../shared/components/icon/Icon.js";
-import { TargetKey } from "../../../../shared/components/target-key/TargetKey.js";
-import { formatShortDate } from "../../../../shared/utils/date-format.js";
+import { CategoryEditorPopover } from "@/features/categories/components/CategoryEditorPopover.js";
+import { CountBadge } from "@/shared/components/count-badge/CountBadge.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
+import { TargetKey } from "@/shared/components/target-key/TargetKey.js";
+import { formatShortDate } from "@/shared/utils/date-format.js";
 import { QuickCreate, type QuickCreateValues } from "../quick-create/QuickCreate.js";
 import type { DropProjection } from "../sprint-board/TaskBoard.js";
-import { tasksForTarget, type NumberedTarget, type PlacementTarget } from "../../models/workspace-model.js";
-import type { SyncState } from "../../types/task.js";
+import { tasksForTarget, type NumberedTarget, type PlacementTarget } from "@/features/workspace/models/workspace-model.js";
+import type { SyncState } from "@/features/workspace/types/task.js";
 import styles from "./WorkspaceSidebar.module.css";
 
 type WorkspaceSidebarProps = {
+	activeCategoryId: string | null;
 	activeTaskId: string | null;
 	activeTarget: PlacementTarget | null;
 	categories: Category[];
+	categoryDropTargetId: string | null;
 	numbered: NumberedTarget[];
 	onAddCategory: () => void;
 	onCancelCreate: () => void;
-	onChangeCategoryColor: (categoryId: string, color: string) => void;
 	onClose: () => void;
 	onCreate: (target: PlacementTarget, values: QuickCreateValues) => void;
 	onSearch: (value: string) => void;
 	onSelectTask: (task: Task) => void;
 	onStartCreate: (target: PlacementTarget) => void;
+	onUpdateCategory: (categoryId: string, input: UpdateCategoryInput) => void;
 	open: boolean;
 	projection: DropProjection;
 	search: string;
@@ -36,6 +38,17 @@ type WorkspaceSidebarProps = {
 };
 
 export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
+	const [collapsedCategoryIds, setCollapsedCategoryIds] = useState(readCollapsedCategoryIds);
+	const toggleCategory = useCallback((categoryId: string) => {
+		setCollapsedCategoryIds(current => {
+			const next = new Set(current);
+			if (next.has(categoryId)) next.delete(categoryId);
+			else next.add(categoryId);
+			rememberCollapsedCategoryIds(next);
+			return next;
+		});
+	}, []);
+
 	return (
 		<>
 			<button aria-label="關閉側欄" className={[styles.scrim, props.open ? styles.open : ""].filter(Boolean).join(" ")} onClick={props.onClose} tabIndex={props.open ? 0 : -1} type="button" />
@@ -66,7 +79,7 @@ export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
 					</div>
 					<div className={styles.groups}>
 						{props.categories.map(category => (
-							<CategoryGroup {...props} category={category} key={category.id} />
+							<CategoryGroup {...props} category={category} collapsed={collapsedCategoryIds.has(category.id)} key={category.id} onToggleCollapsed={toggleCategory} />
 						))}
 					</div>
 					<button className={styles.addCategory} onClick={props.onAddCategory} type="button">
@@ -78,34 +91,86 @@ export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
 	);
 }
 
-function CategoryGroup(props: WorkspaceSidebarProps & { category: Category }) {
+function CategoryGroup(props: WorkspaceSidebarProps & { category: Category; collapsed: boolean; onToggleCollapsed: (categoryId: string) => void }) {
 	const target: PlacementTarget = { id: `category:${props.category.id}`, kind: "category", label: props.category.name, categoryId: props.category.id };
 	const categoryTasks = tasksForTarget(props.tasks, target);
 	const shortcut = props.numbered.find(item => item.id === target.id)?.key;
-	const { isOver, setNodeRef } = useDroppable({ id: `container:${target.id}`, data: { type: "container", target } });
+	const taskDrop = useDroppable({ id: `container:${target.id}`, data: { type: "container", target } });
+	const categoryDrop = useDroppable({ id: `category-sort-target:${props.category.id}`, data: { type: "category-sort-target", categoryId: props.category.id } });
+	const categoryDrag = useDraggable({ id: `category-sort:${props.category.id}`, data: { type: "category-sort", category: props.category } });
+	const setCategoryHeaderRef = useCallback(
+		(node: HTMLElement | null) => {
+			categoryDrop.setNodeRef(node);
+			categoryDrag.setNodeRef(node);
+		},
+		[categoryDrag.setNodeRef, categoryDrop.setNodeRef]
+	);
 	const projected = props.projection?.target.id === target.id;
+	const categoryTargeted = props.categoryDropTargetId === props.category.id && props.activeCategoryId !== props.category.id;
+	const contentId = `backlog-category-${props.category.id}`;
 
 	return (
-		<CategoryColorMenu category={props.category} onChange={color => props.onChangeCategoryColor(props.category.id, color)}>
-			<section className={[styles.group, isOver ? styles.groupOver : ""].filter(Boolean).join(" ")} ref={setNodeRef}>
-				<header>
+		<section
+			className={[styles.group, taskDrop.isOver ? styles.groupOver : "", categoryTargeted ? styles.categoryDropTarget : "", categoryDrag.isDragging ? styles.categoryDragging : ""]
+				.filter(Boolean)
+				.join(" ")}
+			data-category-id={props.category.id}
+			ref={taskDrop.setNodeRef}
+		>
+			<header ref={setCategoryHeaderRef}>
+				<button {...categoryDrag.attributes} {...categoryDrag.listeners} aria-label={`上下拖曳分類 ${props.category.name}`} className={styles.dragHandle} title="拖曳排序" type="button">
+					<Icon name="drag" />
+				</button>
+				<button
+					aria-controls={contentId}
+					aria-expanded={!props.collapsed}
+					aria-label={`${props.collapsed ? "展開" : "收合"} ${props.category.name}`}
+					className={styles.collapse}
+					onClick={() => props.onToggleCollapsed(props.category.id)}
+					type="button"
+				>
+					<Icon name={props.collapsed ? "chevronRight" : "chevronDown"} />
+				</button>
+				<CategoryEditorPopover category={props.category} onUpdate={input => props.onUpdateCategory(props.category.id, input)}>
 					<span className={styles.categoryDot} style={{ backgroundColor: props.category.color }} />
 					<h2>{props.category.name}</h2>
 					<CountBadge>{categoryTasks.length}</CountBadge>
-					<button aria-label={`新增到 ${props.category.name}`} onClick={() => props.onStartCreate(target)} type="button">
-						<Icon name="add" />
-					</button>
-					{props.targeting && shortcut ? <TargetKey>{shortcut}</TargetKey> : null}
-				</header>
-				{props.activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={props.onCancelCreate} onCreate={values => props.onCreate(target, values)} /> : null}
-				{categoryTasks.map(task => (
-					<BacklogDropSlot active={props.activeTaskId === task.id} beforeTaskId={task.id} key={task.id} projected={Boolean(projected && props.projection?.beforeTaskId === task.id)} target={target}>
-						<BacklogTask containerId={target.id} onSelect={() => props.onSelectTask(task)} syncState={props.syncStates.get(task.id)} task={task} />
-					</BacklogDropSlot>
-				))}
-				{projected && !props.projection?.beforeTaskId ? <div aria-hidden="true" className={styles.placeholder} /> : null}
-			</section>
-		</CategoryColorMenu>
+				</CategoryEditorPopover>
+				<button
+					aria-label={`新增到 ${props.category.name}`}
+					className={styles.addTask}
+					onClick={() => {
+						if (props.collapsed) props.onToggleCollapsed(props.category.id);
+						props.onStartCreate(target);
+					}}
+					type="button"
+				>
+					<Icon name="add" />
+				</button>
+				{props.targeting && shortcut ? <TargetKey>{shortcut}</TargetKey> : null}
+			</header>
+			<div aria-hidden={props.collapsed} className={[styles.categoryContent, props.collapsed ? styles.categoryContentCollapsed : ""].filter(Boolean).join(" ")} id={contentId} inert={props.collapsed}>
+				<div className={styles.categoryContentInner}>
+					{props.activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={props.onCancelCreate} onCreate={values => props.onCreate(target, values)} /> : null}
+					{categoryTasks.map(task => (
+						<BacklogDropSlot active={props.activeTaskId === task.id} beforeTaskId={task.id} key={task.id} projected={Boolean(projected && props.projection?.beforeTaskId === task.id)} target={target}>
+							<BacklogTask containerId={target.id} onSelect={() => props.onSelectTask(task)} syncState={props.syncStates.get(task.id)} task={task} />
+						</BacklogDropSlot>
+					))}
+					{projected && !props.projection?.beforeTaskId ? <div aria-hidden="true" className={styles.placeholder} /> : null}
+				</div>
+			</div>
+		</section>
+	);
+}
+
+export function CategoryDragPreview({ category }: { category: Category }) {
+	return (
+		<div className={styles.categoryPreview}>
+			<Icon name="drag" />
+			<span className={styles.categoryDot} style={{ backgroundColor: category.color }} />
+			<strong>{category.name}</strong>
+		</div>
 	);
 }
 
@@ -147,4 +212,20 @@ function BacklogTask({ containerId, onSelect, syncState, task }: { containerId: 
 			</span>
 		</button>
 	);
+}
+
+const COLLAPSED_CATEGORIES_KEY = "em-todo-collapsed-categories-v1";
+
+function readCollapsedCategoryIds(): Set<string> {
+	if (typeof window === "undefined") return new Set();
+	try {
+		const value = JSON.parse(localStorage.getItem(COLLAPSED_CATEGORIES_KEY) ?? "[]");
+		return new Set(Array.isArray(value) ? value.filter(item => typeof item === "string") : []);
+	} catch {
+		return new Set();
+	}
+}
+
+function rememberCollapsedCategoryIds(categoryIds: Set<string>) {
+	localStorage.setItem(COLLAPSED_CATEGORIES_KEY, JSON.stringify([...categoryIds]));
 }

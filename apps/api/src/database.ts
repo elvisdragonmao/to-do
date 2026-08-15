@@ -104,10 +104,12 @@ export class TodoDatabase {
 	}
 
 	updateCategory(id: string, input: UpdateCategoryInput): Category | null {
-		const result = this.db.prepare("UPDATE categories SET color = ? WHERE id = ?").run(input.color, id);
-		if (result.changes !== 1) return null;
-		const row = this.db.prepare("SELECT * FROM categories WHERE id = ?").get(id) as CategoryRow;
-		return mapCategory(row);
+		const row = this.db.prepare("SELECT * FROM categories WHERE id = ?").get(id) as CategoryRow | undefined;
+		if (!row) return null;
+		const current = mapCategory(row);
+		const next = { ...current, ...input };
+		this.db.prepare("UPDATE categories SET name = ?, color = ?, sort_order = ? WHERE id = ?").run(next.name, next.color, next.sortOrder, id);
+		return next;
 	}
 
 	listTasks(sprintStart: string): Task[] {
@@ -323,6 +325,7 @@ export class TodoDatabase {
          VALUES (?, '未分類', '#A69697', 1, ?, 0)`
 			)
 			.run(DEFAULT_CATEGORY_ID, new Date().toISOString());
+		this.db.prepare("UPDATE categories SET color = '#5C6BC0' WHERE id = ? AND color = '#A69697'").run(DEFAULT_CATEGORY_ID);
 	}
 }
 
