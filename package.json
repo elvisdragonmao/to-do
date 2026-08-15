@@ -8,8 +8,8 @@
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"start": "pnpm --filter @em-todo/api start",
-		"test": "pnpm -r --if-present test",
-		"typecheck": "pnpm -r --if-present typecheck"
+		"test": "pnpm --filter @em-todo/shared build && pnpm -r --if-present test",
+		"typecheck": "pnpm --filter @em-todo/shared build && pnpm -r --if-present typecheck"
 	},
 	"devDependencies": {
 		"concurrently": "^10.0.0",
