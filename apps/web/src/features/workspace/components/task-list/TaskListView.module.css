@@ -34,12 +34,20 @@
 }
 
 .group {
+	animation: list-group-enter var(--md-sys-motion-duration-enter) var(--md-sys-motion-easing-decelerate) both;
 	background: var(--md-sys-color-surface-container-low);
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--md-sys-shape-corner-large);
 	display: grid;
 	gap: var(--space-3);
 	padding: var(--space-4);
+}
+
+@keyframes list-group-enter {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
 }
 
 .scroll {
@@ -60,7 +68,7 @@
 	font-size: var(--md-sys-typescale-body-small-size);
 	padding: var(--space-2) var(--space-3);
 	text-align: start;
-	vertical-align: top;
+	vertical-align: middle;
 }
 
 .group th {
@@ -212,7 +220,9 @@
 	color: var(--md-sys-color-on-surface-variant);
 	font-size: var(--md-sys-typescale-body-small-size);
 	line-height: var(--md-sys-typescale-body-small-line-height);
-	overflow-wrap: anywhere;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .emptyValue {
@@ -240,8 +250,11 @@
 
 .descriptionEditor {
 	color: var(--md-sys-color-on-surface-variant);
+	field-sizing: content;
 	font-size: var(--md-sys-typescale-body-small-size);
 	line-height: var(--md-sys-typescale-body-small-line-height);
+	min-height: var(--md-sys-typescale-body-small-line-height);
+	overflow: hidden;
 	resize: none;
 }
 
@@ -283,9 +296,14 @@
 	box-shadow: 0 0 0 2px var(--md-sys-color-primary);
 }
 
-.selectControl svg:last-child {
-	height: 12px;
-	width: 12px;
+.selectArrow {
+	border-bottom: 1.5px solid currentColor;
+	border-right: 1.5px solid currentColor;
+	flex: 0 0 auto;
+	height: 6px;
+	margin: -3px 2px 1px 3px;
+	transform: rotate(45deg);
+	width: 6px;
 }
 
 .statusDone {

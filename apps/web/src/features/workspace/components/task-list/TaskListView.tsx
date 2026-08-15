@@ -1,13 +1,21 @@
 import type { Category, Task, UpdateTaskInput } from "@em-todo/shared";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
-import { CountBadge } from "../../../../shared/components/count-badge/CountBadge.js";
-import { Icon } from "../../../../shared/components/icon/Icon.js";
-import { formatShortDate } from "../../../../shared/utils/date-format.js";
-import { linkify } from "../../../../shared/utils/linkify.js";
+import { CountBadge } from "@/shared/components/count-badge/CountBadge.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
+import { formatShortDate } from "@/shared/utils/date-format.js";
+import { linkify } from "@/shared/utils/linkify.js";
 import { CategoryTag } from "../task-card/CategoryTag.js";
-import { sortTasks, taskListStatus, updateForListPlannedDate, updateForListStatus, type TaskListStatus, type TaskSortDirection, type TaskSortKey } from "../../models/task-list-model.js";
-import type { SyncState } from "../../types/task.js";
+import {
+	sortTasks,
+	taskListStatus,
+	updateForListPlannedDate,
+	updateForListStatus,
+	type TaskListStatus,
+	type TaskSortDirection,
+	type TaskSortKey
+} from "@/features/workspace/models/task-list-model.js";
+import type { SyncState } from "@/features/workspace/types/task.js";
 import styles from "./TaskListView.module.css";
 
 const STATUS_LABELS: Record<Task["status"], string> = {
@@ -185,7 +193,7 @@ function TaskRow({
 						<option value="DONE">Done</option>
 					</select>
 					<span>{task.isBacklog ? "Backlog" : STATUS_LABELS[task.status]}</span>
-					<Icon name="chevronDown" />
+					<span aria-hidden="true" className={styles.selectArrow} />
 				</label>
 			</td>
 			<td>
@@ -199,7 +207,7 @@ function TaskRow({
 						))}
 					</select>
 					<span>{task.urgency}</span>
-					<Icon name="chevronDown" />
+					<span aria-hidden="true" className={styles.selectArrow} />
 				</label>
 			</td>
 			<td>{formatShortDate(task.createdAt.slice(0, 10))}</td>
@@ -308,6 +316,12 @@ function InlineTextEditor({
 		if (multiline) textareaRef.current?.focus();
 		else inputRef.current?.focus();
 	}, [editing, multiline]);
+	useLayoutEffect(() => {
+		if (!editing || !multiline || !textareaRef.current) return;
+		const textarea = textareaRef.current;
+		textarea.style.height = "0px";
+		textarea.style.height = `${textarea.scrollHeight}px`;
+	}, [draft, editing, multiline]);
 
 	const begin = () => {
 		ignoreBlur.current = false;
@@ -367,7 +381,7 @@ function InlineTextEditor({
 				onClick={event => event.stopPropagation()}
 				onKeyDown={keyDown}
 				ref={textareaRef}
-				rows={2}
+				rows={1}
 				value={draft}
 			/>
 		);
