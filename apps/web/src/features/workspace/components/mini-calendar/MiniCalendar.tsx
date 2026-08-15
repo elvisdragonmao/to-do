@@ -25,6 +25,7 @@ export function MiniCalendar({
 	const [anchor, setAnchor] = useState(sprintStart);
 	useEffect(() => setAnchor(sprintStart), [sprintStart]);
 	const dates = calendarGrid(anchor);
+	const today = localIsoDate(new Date());
 	const sprintEnd = addDays(sprintStart, 6);
 	const cleared = tasks.length > 0 && tasks.every(task => task.status === "DONE");
 	const selectedWeek = Math.max(0, Math.floor(dates.findIndex(date => date === sprintStart) / 7));
@@ -59,6 +60,7 @@ export function MiniCalendar({
 						onSelectSprint={onSelectSprint}
 						sprintEnd={sprintEnd}
 						sprintStart={sprintStart}
+						today={date === today}
 					/>
 				))}
 			</div>
@@ -74,7 +76,8 @@ function CalendarDay({
 	interactive,
 	onSelectSprint,
 	sprintEnd,
-	sprintStart
+	sprintStart,
+	today
 }: {
 	anchor: string;
 	cleared: boolean;
@@ -84,6 +87,7 @@ function CalendarDay({
 	onSelectSprint: (sprintStart: string) => void;
 	sprintEnd: string;
 	sprintStart: string;
+	today: boolean;
 }) {
 	const target: PlacementTarget = {
 		id: `calendar:${date}`,
@@ -101,12 +105,14 @@ function CalendarDay({
 
 	return (
 		<button
+			aria-current={today ? "date" : undefined}
 			aria-label={dropEnabled ? `排到 ${date}` : date}
 			aria-pressed={inSprint}
 			className={[
 				sameMonth(date, anchor) ? "" : styles.outside,
 				inSprint ? styles.currentSprint : "",
 				inSprint && cleared ? styles.cleared : "",
+				today ? styles.today : "",
 				dropEnabled ? styles.dropEnabled : "",
 				isOver ? styles.dropOver : ""
 			]
@@ -122,6 +128,13 @@ function CalendarDay({
 			<span>{Number(date.slice(8))}</span>
 		</button>
 	);
+}
+
+function localIsoDate(date: Date): string {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const day = String(date.getDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
 }
 
 function changeMonth(value: string, amount: number): string {

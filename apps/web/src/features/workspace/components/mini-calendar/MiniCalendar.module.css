@@ -114,6 +114,28 @@
 	z-index: 3;
 }
 
+.grid button.today {
+	color: var(--md-sys-color-primary);
+	font-weight: 800;
+}
+
+.grid button.today::after {
+	border: 1.5px solid var(--md-sys-color-primary);
+	border-radius: var(--md-sys-shape-corner-full);
+	content: "";
+	inset: 1px;
+	pointer-events: none;
+	position: absolute;
+}
+
+.grid button.today.dropOver {
+	color: var(--md-sys-color-on-primary);
+}
+
+.grid button.today.dropOver::after {
+	border-color: var(--md-sys-color-on-primary);
+}
+
 .selection {
 	background: var(--md-sys-color-primary-container);
 	border-radius: var(--md-sys-shape-corner-small);
