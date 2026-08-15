@@ -73,14 +73,27 @@ N → 1 → Study Physics → Tab → 1.5 → Tab → 20260830 → Enter
 ```text
 apps/
   web/                 React、React Router、TanStack Query、Base UI、dnd-kit、Lucide、Vite PWA
-    src/features/      依 auth、categories、workspace 功能分區
-    src/styles/        Material 3 tokens、base、components、auth、workspace
+    src/
+      features/        依 auth、categories、workspace 功能分區
+        */components/  功能專屬元件與就近的 CSS Modules
+        */hooks/       功能專屬互動與 mutation hooks
+        */services/    API 呼叫、query options 與 query keys
+        */models/      純前端 domain model 與排序／排程邏輯
+        */types/       功能內部型別
+      shared/
+        components/    Button、Field、Dialog、Toast 等共用元件
+        hooks/         跨功能 hooks
+        services/      API client 與 TanStack Query client
+        utils/         日期、連結文字等純函式
+      layouts/         Route 與應用層 layout
+      styles/          只保留 Material 3 tokens 與全域 base/reset
+    public/             Vite PWA 圖示與靜態資源
   api/                 Fastify、node:sqlite、cookie session、scrypt 密碼雜湊
 packages/
   shared/              共用 Zod contracts、TypeScript types、sprint 日期與排程規則
 ```
 
-TanStack Query 擁有所有 server state。任務與分類 mutation 使用 optimistic cache update；成功、失敗與離線暫停狀態都由 mutation state 映射回個別卡片。前端 route 只負責 sprint URL 與 view shell，排程規則集中在 shared package 與 workspace model。
+TanStack Query 擁有所有 server state。任務與分類 mutation 使用 optimistic cache update；成功、失敗與離線暫停狀態都由 mutation state 映射回個別卡片。前端 route 只負責 sprint URL 與 view shell，排程規則集中在 shared package 與 workspace model。功能元件不依賴大型全域 class namespace；每個畫面區塊使用同資料夾的 CSS Module，共用色彩、字體、間距、形狀與 motion 仍由 Material 3 token 統一控制。
 
 ## 本機開發
 
