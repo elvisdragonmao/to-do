@@ -14,7 +14,7 @@ import {
 	type DragStartEvent
 } from "@dnd-kit/core";
 import { useMutationState, useQueries, useQuery } from "@tanstack/react-query";
-import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { CategoryDialog } from "@/features/categories/components/CategoryDialog.js";
@@ -42,7 +42,7 @@ import { CategoryDragPreview, WorkspaceSidebar } from "../components/workspace-s
 import { useSprintPager } from "../hooks/useSprintPager.js";
 import { useTaskMutations } from "../hooks/useTaskMutations.js";
 import { findDirectionalTask, useWorkspaceKeyboard } from "../hooks/useWorkspaceKeyboard.js";
-import { adjacentSprint, createInputForTarget, numberedTargets, sortOrderBefore, tasksForTarget, updateForTarget, type PlacementTarget, type ViewMode } from "../models/workspace-model.js";
+import { adjacentSprint, createInputForTarget, numberedTargets, sortOrdersBefore, tasksForTarget, updateForTarget, type PlacementTarget, type ViewMode } from "../models/workspace-model.js";
 import { allTasksQuery, backlogTasksQuery, sprintTasksQuery } from "../services/task-queries.js";
 import type { SyncState } from "../types/task.js";
 import styles from "./WorkspacePage.module.css";
@@ -56,7 +56,31 @@ const collisionDetection: CollisionDetection = args => {
 	}
 	const taskContainers = args.droppableContainers.filter(container => container.data.current?.type !== "category-sort-target");
 	const pointerCollisions = pointerWithin({ ...args, droppableContainers: taskContainers });
-	if (pointerCollisions.length === 0) return args.pointerCoordinates ? [] : closestCenter({ ...args, droppableContainers: taskContainers });
+	if (pointerCollisions.length === 0) {
+		if (!args.pointerCoordinates) return closestCenter({ ...args, droppableContainers: taskContainers });
+		const calendarContainers = taskContainers.filter(container => container.data.current?.type === "calendar-day");
+		const calendarRects = calendarContainers.map(container => args.droppableRects.get(container.id)).filter(rect => rect !== undefined);
+		if (calendarRects.length > 0) {
+			const bounds = {
+				left: Math.min(...calendarRects.map(rect => rect.left)),
+				right: Math.max(...calendarRects.map(rect => rect.right)),
+				top: Math.min(...calendarRects.map(rect => rect.top)),
+				bottom: Math.max(...calendarRects.map(rect => rect.bottom))
+			};
+			const { x, y } = args.pointerCoordinates;
+			if (x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom) {
+				return calendarContainers
+					.flatMap(container => {
+						const rect = args.droppableRects.get(container.id);
+						if (!rect) return [];
+						const distance = Math.hypot(x - (rect.left + rect.width / 2), y - (rect.top + rect.height / 2));
+						return [{ id: container.id, data: { droppableContainer: container, value: distance } }];
+					})
+					.toSorted((left, right) => left.data.value - right.data.value);
+			}
+		}
+		return [];
+	}
 	const typeFor = (id: string | number) => args.droppableContainers.find(container => container.id === id)?.data.current?.type;
 	return pointerCollisions.toSorted((left, right) => collisionPriority(typeFor(left.id)) - collisionPriority(typeFor(right.id)));
 };
@@ -98,10 +122,12 @@ export function WorkspacePage() {
 	const allTasksResult = useQuery({ ...allTasksQuery(), enabled: view === "list" });
 	const [search, setSearch] = useState("");
 	const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase("zh-TW"));
-	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+	const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(() => new Set());
+	const [selectionAnchorTaskId, setSelectionAnchorTaskId] = useState<string | null>(null);
 	const [targeting, setTargeting] = useState(false);
 	const [activeTarget, setActiveTarget] = useState<PlacementTarget | null>(null);
 	const [activeTask, setActiveTask] = useState<Task | null>(null);
+	const [activeDraggedTasks, setActiveDraggedTasks] = useState<Task[]>([]);
 	const [activeCategory, setActiveCategory] = useState<Category | null>(null);
 	const [categoryDropTargetId, setCategoryDropTargetId] = useState<string | null>(null);
 	const [projection, setProjection] = useState<DropProjection>(null);
@@ -112,6 +138,8 @@ export function WorkspacePage() {
 	const searchRef = useRef<HTMLInputElement>(null);
 	const pagerRef = useRef<HTMLElement>(null);
 	const pendingFocusTaskRef = useRef<string | null>(null);
+	const activeDraggedTasksRef = useRef<Task[]>([]);
+	const ignoreTaskClickRef = useRef(false);
 	const tasks = tasksQuery.data?.tasks ?? [];
 	const backlogTasks = backlogQuery.data?.tasks ?? [];
 	const allTasks = allTasksResult.data?.tasks ?? [];
@@ -120,6 +148,7 @@ export function WorkspacePage() {
 	const uncategorized = categories.find(category => category.isDefault)?.id ?? categories[0]?.id ?? "uncategorized";
 	const numbered = useMemo(() => numberedTargets(view, sprintStart, categories), [categories, sprintStart, view]);
 	const syncStates = useSyncStates();
+	const activeTaskIds = useMemo(() => new Set(activeDraggedTasks.map(task => task.id)), [activeDraggedTasks]);
 	const searchableTasks = view === "list" ? allTasks : tasks;
 	const searchMatches = useMemo(() => {
 		if (!deferredSearch) return null;
@@ -178,8 +207,20 @@ export function WorkspacePage() {
 		},
 		[goRelative, goToSprint, nextSprintStart, previousSprintStart, view]
 	);
-	const selectTask = useCallback((taskId: string, focus = false) => {
-		setSelectedTaskId(taskId);
+	const clearTaskSelection = useCallback(() => {
+		setSelectedTaskIds(new Set());
+		setSelectionAnchorTaskId(null);
+	}, []);
+	const selectTask = useCallback((taskId: string, focus = false, additive = false) => {
+		if (ignoreTaskClickRef.current) return;
+		setSelectedTaskIds(current => {
+			if (!additive) return new Set([taskId]);
+			const next = new Set(current);
+			if (next.has(taskId)) next.delete(taskId);
+			else next.add(taskId);
+			return next;
+		});
+		setSelectionAnchorTaskId(taskId);
 		if (focus) {
 			requestAnimationFrame(() => {
 				const element = document.querySelector<HTMLElement>(`[data-task-card][data-task-id="${CSS.escape(taskId)}"]`);
@@ -189,12 +230,16 @@ export function WorkspacePage() {
 		}
 	}, []);
 	const selectBacklogTask = useCallback(
-		(task: Task) => {
+		(task: Task, additive: boolean) => {
+			if (additive) {
+				selectTask(task.id, false, true);
+				return;
+			}
+			selectTask(task.id);
 			if (task.isBacklog) {
 				setSidebarOpen(false);
 				setView("list");
 				pendingFocusTaskRef.current = task.id;
-				setSelectedTaskId(task.id);
 				return;
 			}
 			setSidebarOpen(false);
@@ -203,7 +248,6 @@ export function WorkspacePage() {
 				return;
 			}
 			pendingFocusTaskRef.current = task.id;
-			setSelectedTaskId(task.id);
 			goToSprint(task.sprintStart);
 		},
 		[goToSprint, selectTask, setView, sprintStart]
@@ -246,18 +290,30 @@ export function WorkspacePage() {
 		[sprintStart, taskMutations.create, uncategorized]
 	);
 	const updateTask = useCallback((taskId: string, input: UpdateTaskInput) => taskMutations.update.mutate({ taskId, input }), [taskMutations.update]);
-	const deleteTask = useCallback((taskId: string) => taskMutations.remove.mutate({ taskId }), [taskMutations.remove]);
+	const deleteTask = useCallback(
+		(taskId: string) => {
+			taskMutations.remove.mutate({ taskId });
+			setSelectedTaskIds(current => {
+				if (!current.has(taskId)) return current;
+				const next = new Set(current);
+				next.delete(taskId);
+				return next;
+			});
+		},
+		[taskMutations.remove]
+	);
 	const moveSelection = useCallback(
 		(direction: "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight") => {
-			const target = findDirectionalTask(selectedTaskId, direction);
+			const target = findDirectionalTask(selectionAnchorTaskId, direction);
 			if (target?.dataset.taskId) selectTask(target.dataset.taskId, true);
 		},
-		[selectTask, selectedTaskId]
+		[selectTask, selectionAnchorTaskId]
 	);
 
 	useWorkspaceKeyboard({
 		onCreate: beginTargeting,
 		onEscape: () => {
+			clearTaskSelection();
 			setActiveTarget(null);
 			setTargeting(false);
 			setSidebarOpen(false);
@@ -286,7 +342,10 @@ export function WorkspacePage() {
 		pendingFocusTaskRef.current = null;
 		selectTask(taskId, true);
 	}, [allTasks, selectTask, tasks, view]);
-	useEffect(() => setPreviewSprintStart(sprintStart), [sprintStart]);
+	useEffect(() => {
+		setPreviewSprintStart(sprintStart);
+		clearTaskSelection();
+	}, [clearTaskSelection, sprintStart]);
 	useEffect(() => {
 		const mobile = window.matchMedia("(max-width: 839px)");
 		const closeOnMobile = (event: MediaQueryListEvent) => {
@@ -312,23 +371,41 @@ export function WorkspacePage() {
 		setTrashTargeted(overTrash);
 		setProjection(overTrash ? null : projectionFromOver(event));
 	}, []);
-	const handleDragStart = useCallback((event: DragStartEvent) => {
-		if (event.active.data.current?.type === "category-sort") {
-			const category = event.active.data.current.category as Category;
-			setActiveCategory(category);
-			setCategoryDropTargetId(category.id);
-			setActiveTask(null);
+	const handleDragStart = useCallback(
+		(event: DragStartEvent) => {
+			if (event.active.data.current?.type === "category-sort") {
+				const category = event.active.data.current.category as Category;
+				activeDraggedTasksRef.current = [];
+				setActiveDraggedTasks([]);
+				setActiveCategory(category);
+				setCategoryDropTargetId(category.id);
+				setActiveTask(null);
+				setProjection(null);
+				setTrashTargeted(false);
+				return;
+			}
+			const task = event.active.data.current?.task as Task | undefined;
+			if (!task) return;
+			const dragSelection = selectedTaskIds.has(task.id) ? selectedTaskIds : new Set([task.id]);
+			if (!selectedTaskIds.has(task.id)) {
+				setSelectedTaskIds(new Set([task.id]));
+				setSelectionAnchorTaskId(task.id);
+			}
+			const taskById = new Map([...allTasks, ...tasks, ...backlogTasks, task].map(item => [item.id, item]));
+			const domOrder = [...document.querySelectorAll<HTMLElement>("[data-task-id]")].map(element => element.dataset.taskId).filter(id => id !== undefined);
+			const orderedIds = [...new Set([...domOrder, ...dragSelection])];
+			const draggedTasks = orderedIds.map(id => taskById.get(id)).filter((item): item is Task => item !== undefined && dragSelection.has(item.id) && !syncStates.has(item.id));
+			activeDraggedTasksRef.current = draggedTasks.length > 0 ? draggedTasks : [task];
+			setActiveDraggedTasks(activeDraggedTasksRef.current);
+			const pager = pagerRef.current;
+			const currentPage = pager?.querySelector<HTMLElement>("[data-sprint-current]");
+			if (pager && currentPage) pager.scrollTop = currentPage.offsetTop;
 			setProjection(null);
 			setTrashTargeted(false);
-			return;
-		}
-		const pager = pagerRef.current;
-		const currentPage = pager?.querySelector<HTMLElement>("[data-sprint-current]");
-		if (pager && currentPage) pager.scrollTop = currentPage.offsetTop;
-		setProjection(null);
-		setTrashTargeted(false);
-		setActiveTask(event.active.data.current?.task as Task);
-	}, []);
+			setActiveTask(task);
+		},
+		[allTasks, backlogTasks, selectedTaskIds, syncStates, tasks]
+	);
 	const handleDragEnd = (event: DragEndEvent) => {
 		if (event.active.data.current?.type === "category-sort") {
 			const category = event.active.data.current.category as Category | undefined;
@@ -341,23 +418,36 @@ export function WorkspacePage() {
 			return;
 		}
 		const task = event.active.data.current?.task as Task | undefined;
+		const draggedTasks = activeDraggedTasksRef.current.length > 0 ? activeDraggedTasksRef.current : task ? [task] : [];
 		const overTrash = event.over?.id === TASK_TRASH_ID;
 		const next = projectionFromOver(event);
+		ignoreTaskClickRef.current = true;
+		window.setTimeout(() => {
+			ignoreTaskClickRef.current = false;
+		}, 0);
+		activeDraggedTasksRef.current = [];
+		setActiveDraggedTasks([]);
 		setActiveTask(null);
 		setProjection(null);
 		setTrashTargeted(false);
-		if (task && overTrash) {
-			taskMutations.remove.mutate({ taskId: task.id });
+		if (draggedTasks.length > 0 && overTrash) {
+			for (const draggedTask of draggedTasks) taskMutations.remove.mutate({ taskId: draggedTask.id });
+			clearTaskSelection();
 			return;
 		}
-		if (!task || !next) return;
+		if (draggedTasks.length === 0 || !next) return;
+		const draggedIds = new Set(draggedTasks.map(draggedTask => draggedTask.id));
 		const candidateTasks = next.target.kind === "category" ? backlogTasks : tasks;
 		const destination = tasksForTarget(
-			candidateTasks.filter(candidate => candidate.id !== task.id),
+			candidateTasks.filter(candidate => !draggedIds.has(candidate.id)),
 			next.target
 		);
-		const sortOrder = sortOrderBefore(destination, next.beforeTaskId);
-		updateTask(task.id, updateForTarget(task, next.target, sortOrder, sprintStart));
+		const beforeTaskId = next.beforeTaskId && !draggedIds.has(next.beforeTaskId) ? next.beforeTaskId : undefined;
+		const sortOrders = sortOrdersBefore(destination, beforeTaskId, draggedTasks.length);
+		for (const [index, draggedTask] of draggedTasks.entries()) {
+			updateTask(draggedTask.id, updateForTarget(draggedTask, next.target, sortOrders[index]!, sprintStart));
+		}
+		clearTaskSelection();
 	};
 
 	if (sprintStart !== rawSprintStart) return <Navigate replace to={`/app/sprint/${sprintStart}`} />;
@@ -367,21 +457,33 @@ export function WorkspacePage() {
 			autoScroll={false}
 			collisionDetection={collisionDetection}
 			onDragCancel={() => {
+				activeDraggedTasksRef.current = [];
+				setActiveDraggedTasks([]);
 				setActiveCategory(null);
 				setCategoryDropTargetId(null);
 				setActiveTask(null);
 				setProjection(null);
 				setTrashTargeted(false);
+				ignoreTaskClickRef.current = true;
+				window.setTimeout(() => {
+					ignoreTaskClickRef.current = false;
+				}, 0);
 			}}
 			onDragEnd={handleDragEnd}
 			onDragOver={handleDragOver}
 			onDragStart={handleDragStart}
 			sensors={sensors}
 		>
-			<div className={styles.appShell}>
+			<div
+				className={styles.appShell}
+				onPointerDown={(event: ReactPointerEvent<HTMLDivElement>) => {
+					const target = event.target as Element;
+					if (!target.closest("[data-task-card], [data-backlog-task]")) clearTaskSelection();
+				}}
+			>
 				<WorkspaceSidebar
 					activeCategoryId={activeCategory?.id ?? null}
-					activeTaskId={activeTask?.id ?? null}
+					activeTaskIds={activeTaskIds}
 					activeTarget={activeTarget}
 					categories={categories}
 					categoryDropTargetId={categoryDropTargetId}
@@ -398,6 +500,7 @@ export function WorkspacePage() {
 					projection={projection}
 					search={search}
 					searchRef={searchRef}
+					selectedTaskIds={selectedTaskIds}
 					targeting={targeting}
 					tasks={visibleBacklogTasks}
 					syncStates={syncStates}
@@ -438,12 +541,13 @@ export function WorkspacePage() {
 									</div>
 								) : (
 									<TaskListView
+										activeTaskIds={activeTaskIds}
 										categories={categories}
 										onDelete={deleteTask}
-										onSelect={taskId => selectTask(taskId)}
+										onSelect={(taskId, additive) => selectTask(taskId, false, additive)}
 										onUpdate={updateTask}
 										searchMatches={searchMatches}
-										selectedTaskId={selectedTaskId}
+										selectedTaskIds={selectedTaskIds}
 										syncStates={syncStates}
 										tasks={allTasks}
 									/>
@@ -473,18 +577,18 @@ export function WorkspacePage() {
 													</div>
 												) : (
 													<TaskBoard
-														activeTaskId={activeTask?.id ?? null}
+														activeTaskIds={activeTaskIds}
 														activeTarget={activeTarget}
 														categories={categories}
 														numbered={numbered}
 														onCancelCreate={cancelCreate}
 														onCreate={createTask}
-														onSelect={taskId => selectTask(taskId)}
+														onSelect={(taskId, additive) => selectTask(taskId, false, additive)}
 														onStartCreate={startCreate}
 														onUpdate={updateTask}
 														projection={projection}
 														searchMatches={searchMatches}
-														selectedTaskId={selectedTaskId}
+														selectedTaskIds={selectedTaskIds}
 														sprintStart={sprintStart}
 														syncStates={syncStates}
 														targeting={targeting}
@@ -518,6 +622,7 @@ export function WorkspacePage() {
 					<TaskCardPreview
 						category={categories.find(category => category.id === activeTask.categoryId)}
 						railTargeted={trashTargeted || Boolean(projection?.target.id.startsWith("calendar:"))}
+						selectionCount={activeDraggedTasks.length}
 						task={activeTask}
 					/>
 				) : null}

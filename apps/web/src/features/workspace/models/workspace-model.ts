@@ -93,11 +93,27 @@ export function tasksForTarget(tasks: Task[], target: PlacementTarget): Task[] {
 }
 
 export function sortOrderBefore(tasks: Task[], beforeTaskId?: string): number {
-	if (tasks.length === 0) return Date.now();
-	if (!beforeTaskId) return tasks[tasks.length - 1]!.sortOrder + 1024;
-	const index = tasks.findIndex(task => task.id === beforeTaskId);
-	if (index <= 0) return tasks[0]!.sortOrder - 1024;
-	return (tasks[index - 1]!.sortOrder + tasks[index]!.sortOrder) / 2;
+	return sortOrdersBefore(tasks, beforeTaskId, 1)[0]!;
+}
+
+export function sortOrdersBefore(tasks: Task[], beforeTaskId: string | undefined, count: number): number[] {
+	if (count <= 0) return [];
+	if (tasks.length === 0) {
+		const first = Date.now();
+		return Array.from({ length: count }, (_, index) => first + index * 1024);
+	}
+
+	const requestedIndex = beforeTaskId ? tasks.findIndex(task => task.id === beforeTaskId) : tasks.length;
+	const insertionIndex = requestedIndex < 0 ? tasks.length : requestedIndex;
+	const previous = tasks[insertionIndex - 1];
+	const next = tasks[insertionIndex];
+	if (!previous && next) return Array.from({ length: count }, (_, index) => next.sortOrder - 1024 * (count - index));
+	if (previous && !next) return Array.from({ length: count }, (_, index) => previous.sortOrder + 1024 * (index + 1));
+	if (previous && next) {
+		const step = (next.sortOrder - previous.sortOrder) / (count + 1);
+		return Array.from({ length: count }, (_, index) => previous.sortOrder + step * (index + 1));
+	}
+	return [];
 }
 
 export function adjacentSprint(sprintStart: string, direction: -1 | 1): string {

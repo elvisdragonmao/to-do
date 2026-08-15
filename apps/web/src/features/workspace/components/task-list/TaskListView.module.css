@@ -94,7 +94,7 @@
 }
 
 .group th.actionsHeader {
-	width: 44px;
+	width: 72px;
 }
 
 .group th button {
@@ -133,8 +133,11 @@
 }
 
 .group tbody tr.selected {
-	background: var(--md-sys-color-primary-container);
-	box-shadow: inset 3px 0 var(--md-sys-color-primary);
+	background: color-mix(in srgb, var(--md-sys-color-primary) 14%, var(--md-sys-color-surface-container-lowest));
+}
+
+.group tbody tr.dragSource {
+	opacity: 0;
 }
 
 .group tbody tr.searchDim,
@@ -176,7 +179,8 @@
 	color: var(--md-sys-color-primary);
 }
 
-.deleteButton {
+.deleteButton,
+.dragButton {
 	align-items: center;
 	background: transparent;
 	border-radius: var(--md-sys-shape-corner-full);
@@ -189,7 +193,8 @@
 		transform var(--md-sys-motion-duration-short);
 }
 
-.deleteButton svg {
+.deleteButton svg,
+.dragButton svg {
 	height: 16px;
 	width: 16px;
 }
@@ -383,7 +388,21 @@
 }
 
 .group td.actions {
+	white-space: nowrap;
 	text-align: center;
+}
+
+.dragButton {
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: grab;
+	height: 32px;
+	opacity: 0.35;
+	touch-action: none;
+	width: 32px;
+}
+
+.dragButton:active {
+	cursor: grabbing;
 }
 
 .deleteButton {
@@ -394,7 +413,14 @@
 }
 
 .group tbody tr:is(:hover, :focus-within) .deleteButton,
+.group tbody tr:is(:hover, :focus-within) .dragButton,
 .deleteButton:is(:hover, :focus-visible) {
+	opacity: 1;
+}
+
+.dragButton:is(:hover, :focus-visible) {
+	background: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-on-secondary-container);
 	opacity: 1;
 }
 

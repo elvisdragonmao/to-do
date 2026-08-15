@@ -15,18 +15,18 @@ import styles from "./TaskBoard.module.css";
 export type DropProjection = { target: PlacementTarget; beforeTaskId?: string } | null;
 
 type TaskBoardProps = {
-	activeTaskId: string | null;
+	activeTaskIds: Set<string>;
 	activeTarget: PlacementTarget | null;
 	categories: Category[];
 	numbered: NumberedTarget[];
 	onCancelCreate: () => void;
 	onCreate: (target: PlacementTarget, values: QuickCreateValues) => void;
-	onSelect: (taskId: string) => void;
+	onSelect: (taskId: string, additive: boolean) => void;
 	onStartCreate: (target: PlacementTarget) => void;
 	onUpdate: (taskId: string, input: UpdateTaskInput) => void;
 	projection: DropProjection;
 	searchMatches: Set<string> | null;
-	selectedTaskId: string | null;
+	selectedTaskIds: Set<string>;
 	sprintStart: string;
 	syncStates: Map<string, SyncState>;
 	targeting: boolean;
@@ -46,7 +46,7 @@ export function TaskBoard(props: TaskBoardProps) {
 }
 
 function BoardColumn({
-	activeTaskId,
+	activeTaskIds,
 	activeTarget,
 	categories,
 	numbered,
@@ -57,7 +57,7 @@ function BoardColumn({
 	onUpdate,
 	projection,
 	searchMatches,
-	selectedTaskId,
+	selectedTaskIds,
 	syncStates,
 	target,
 	targeting,
@@ -88,7 +88,7 @@ function BoardColumn({
 			<div className={styles.tasks}>
 				{activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={onCancelCreate} onCreate={values => onCreate(target, values)} /> : null}
 				{targetTasks.map(task => (
-					<TaskDropSlot active={activeTaskId === task.id} beforeTaskId={task.id} key={task.id} projected={Boolean(projectedHere && projection?.beforeTaskId === task.id)} target={target}>
+					<TaskDropSlot active={activeTaskIds.has(task.id)} beforeTaskId={task.id} key={task.id} projected={Boolean(projectedHere && projection?.beforeTaskId === task.id)} target={target}>
 						<TaskCard
 							categories={categories}
 							category={categories.find(category => category.id === task.categoryId)}
@@ -96,7 +96,7 @@ function BoardColumn({
 							onSelect={onSelect}
 							onUpdate={onUpdate}
 							searchMatch={searchMatches?.has(task.id)}
-							selected={selectedTaskId === task.id}
+							selected={selectedTaskIds.has(task.id)}
 							showStatus={view === "week"}
 							syncState={syncStates.get(task.id)}
 							task={task}

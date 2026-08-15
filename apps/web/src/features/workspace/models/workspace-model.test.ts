@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parseCompactDate } from "@/shared/utils/date-format.js";
-import { createInputForTarget, numberedTargets, updateForTarget, weekTargets } from "./workspace-model.js";
+import { createInputForTarget, numberedTargets, sortOrdersBefore, updateForTarget, weekTargets } from "./workspace-model.js";
 
 describe("quick create", () => {
 	it("maps Kanban numbers to statuses and backlog categories", () => {
@@ -87,5 +87,38 @@ describe("quick create", () => {
 			sprintStart: "2026-08-17",
 			status: "TODO"
 		});
+	});
+});
+
+describe("group drag ordering", () => {
+	const task = (id: string, sortOrder: number) => ({
+		id,
+		title: id,
+		description: "",
+		createdAt: "2026-08-01T00:00:00.000Z",
+		updatedAt: "2026-08-01T00:00:00.000Z",
+		isBacklog: false,
+		sprintStart: "2026-08-10",
+		scheduledDate: null,
+		initialPlannedDate: "2026-08-10",
+		lastPlannedDate: "2026-08-10",
+		categoryId: "uncategorized",
+		urgency: 2 as const,
+		estimatedHours: null,
+		dueDate: null,
+		completedDate: null,
+		status: "TODO" as const,
+		sortOrder,
+		version: 1
+	});
+	const tasks = [task("first", 0), task("second", 1024), task("third", 2048)];
+
+	it("allocates stable positions between two neighbours", () => {
+		expect(sortOrdersBefore(tasks, "second", 2)).toEqual([1024 / 3, 2048 / 3]);
+	});
+
+	it("allocates enough room before the first and after the last item", () => {
+		expect(sortOrdersBefore(tasks, "first", 2)).toEqual([-2048, -1024]);
+		expect(sortOrdersBefore(tasks, undefined, 2)).toEqual([3072, 4096]);
 	});
 });

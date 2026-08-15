@@ -10,13 +10,32 @@ import cardStyles from "./TaskCard.module.css";
 import styles from "./TaskCardPreview.module.css";
 import textStyles from "./TaskCardText.module.css";
 
-export function TaskCardPreview({ category, pagerPreview = false, railTargeted = false, task }: { category: Category | undefined; pagerPreview?: boolean; railTargeted?: boolean; task: Task }) {
+export function TaskCardPreview({
+	category,
+	pagerPreview = false,
+	railTargeted = false,
+	selectionCount = 1,
+	task
+}: {
+	category: Category | undefined;
+	pagerPreview?: boolean;
+	railTargeted?: boolean;
+	selectionCount?: number;
+	task: Task;
+}) {
 	return (
 		<article
-			className={[cardStyles.card, pagerPreview ? cardStyles.pagerPreview : cardStyles.overlay, railTargeted ? cardStyles.railOverlay : "", task.status === "DONE" ? cardStyles.done : ""]
+			className={[
+				cardStyles.card,
+				pagerPreview ? cardStyles.pagerPreview : cardStyles.overlay,
+				railTargeted ? cardStyles.railOverlay : "",
+				task.status === "DONE" ? cardStyles.done : "",
+				selectionCount > 1 ? styles.multi : ""
+			]
 				.filter(Boolean)
 				.join(" ")}
 		>
+			{selectionCount > 1 ? <span className={styles.selectionCount}>{selectionCount} 個項目</span> : null}
 			<header className={textStyles.header}>
 				<strong className={textStyles.title}>{task.title}</strong>
 				<div className={actionStyles.actions}>

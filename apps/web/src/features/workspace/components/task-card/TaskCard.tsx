@@ -13,7 +13,7 @@ type TaskCardProps = {
 	categories: Category[];
 	category: Category | undefined;
 	containerId: string;
-	onSelect: (taskId: string) => void;
+	onSelect: (taskId: string, additive: boolean) => void;
 	onUpdate: (taskId: string, input: UpdateTaskInput) => void;
 	searchMatch: boolean | undefined;
 	selected: boolean;
@@ -50,8 +50,7 @@ export const TaskCard = memo(function TaskCard({ categories, category, container
 			data-container-id={containerId}
 			data-task-card
 			data-task-id={task.id}
-			onClick={() => onSelect(task.id)}
-			onFocus={() => onSelect(task.id)}
+			onClick={event => onSelect(task.id, event.shiftKey)}
 			ref={setNodeRef}
 			tabIndex={0}
 		>

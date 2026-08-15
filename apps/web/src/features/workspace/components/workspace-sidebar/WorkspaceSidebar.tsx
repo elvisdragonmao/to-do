@@ -15,7 +15,7 @@ import styles from "./WorkspaceSidebar.module.css";
 
 type WorkspaceSidebarProps = {
 	activeCategoryId: string | null;
-	activeTaskId: string | null;
+	activeTaskIds: Set<string>;
 	activeTarget: PlacementTarget | null;
 	categories: Category[];
 	categoryDropTargetId: string | null;
@@ -25,13 +25,14 @@ type WorkspaceSidebarProps = {
 	onClose: () => void;
 	onCreate: (target: PlacementTarget, values: QuickCreateValues) => void;
 	onSearch: (value: string) => void;
-	onSelectTask: (task: Task) => void;
+	onSelectTask: (task: Task, additive: boolean) => void;
 	onStartCreate: (target: PlacementTarget) => void;
 	onUpdateCategory: (categoryId: string, input: UpdateCategoryInput) => void;
 	open: boolean;
 	projection: DropProjection;
 	search: string;
 	searchRef: RefObject<HTMLInputElement | null>;
+	selectedTaskIds: Set<string>;
 	syncStates: Map<string, SyncState>;
 	targeting: boolean;
 	tasks: Task[];
@@ -153,8 +154,20 @@ function CategoryGroup(props: WorkspaceSidebarProps & { category: Category; coll
 				<div className={styles.categoryContentInner}>
 					{props.activeTarget?.id === target.id ? <QuickCreate label={target.label} onCancel={props.onCancelCreate} onCreate={values => props.onCreate(target, values)} /> : null}
 					{categoryTasks.map(task => (
-						<BacklogDropSlot active={props.activeTaskId === task.id} beforeTaskId={task.id} key={task.id} projected={Boolean(projected && props.projection?.beforeTaskId === task.id)} target={target}>
-							<BacklogTask containerId={target.id} onSelect={() => props.onSelectTask(task)} syncState={props.syncStates.get(task.id)} task={task} />
+						<BacklogDropSlot
+							active={props.activeTaskIds.has(task.id)}
+							beforeTaskId={task.id}
+							key={task.id}
+							projected={Boolean(projected && props.projection?.beforeTaskId === task.id)}
+							target={target}
+						>
+							<BacklogTask
+								containerId={target.id}
+								onSelect={additive => props.onSelectTask(task, additive)}
+								selected={props.selectedTaskIds.has(task.id)}
+								syncState={props.syncStates.get(task.id)}
+								task={task}
+							/>
 						</BacklogDropSlot>
 					))}
 					{projected && !props.projection?.beforeTaskId ? <div aria-hidden="true" className={styles.placeholder} /> : null}
@@ -184,7 +197,7 @@ function BacklogDropSlot({ active, beforeTaskId, children, projected, target }: 
 	);
 }
 
-function BacklogTask({ containerId, onSelect, syncState, task }: { containerId: string; onSelect: () => void; syncState: SyncState; task: Task }) {
+function BacklogTask({ containerId, onSelect, selected, syncState, task }: { containerId: string; onSelect: (additive: boolean) => void; selected: boolean; syncState: SyncState; task: Task }) {
 	const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
 		id: task.id,
 		data: { type: "task", task, containerId },
@@ -196,11 +209,12 @@ function BacklogTask({ containerId, onSelect, syncState, task }: { containerId: 
 			{...attributes}
 			{...listeners}
 			aria-busy={Boolean(syncState)}
-			className={[styles.task, isDragging ? styles.dragging : "", syncState ? styles.subdued : ""].filter(Boolean).join(" ")}
+			aria-pressed={selected}
+			className={[styles.task, selected ? styles.taskSelected : "", isDragging ? styles.dragging : "", syncState ? styles.subdued : ""].filter(Boolean).join(" ")}
 			data-backlog-task
 			data-task-id={task.id}
 			disabled={Boolean(syncState)}
-			onClick={onSelect}
+			onClick={event => onSelect(event.shiftKey)}
 			ref={setNodeRef}
 			type="button"
 		>

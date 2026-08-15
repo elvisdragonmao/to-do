@@ -1,4 +1,5 @@
 import type { Category, Task, UpdateTaskInput } from "@em-todo/shared";
+import { useDraggable } from "@dnd-kit/core";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { CountBadge } from "@/shared/components/count-badge/CountBadge.js";
@@ -35,21 +36,23 @@ const COLUMNS: { key: TaskSortKey; label: string }[] = [
 ];
 
 export function TaskListView({
+	activeTaskIds,
 	categories,
 	onDelete,
 	onSelect,
 	onUpdate,
 	searchMatches,
-	selectedTaskId,
+	selectedTaskIds,
 	syncStates,
 	tasks
 }: {
+	activeTaskIds: Set<string>;
 	categories: Category[];
 	onDelete: (taskId: string) => void;
-	onSelect: (taskId: string) => void;
+	onSelect: (taskId: string, additive: boolean) => void;
 	onUpdate: (taskId: string, input: UpdateTaskInput) => void;
 	searchMatches: Set<string> | null;
-	selectedTaskId: string | null;
+	selectedTaskIds: Set<string>;
 	syncStates: Map<string, SyncState>;
 	tasks: Task[];
 }) {
@@ -107,13 +110,14 @@ export function TaskListView({
 							<tbody>
 								{group.tasks.map(task => (
 									<TaskRow
+										active={activeTaskIds.has(task.id)}
 										categories={categories}
 										key={task.id}
 										onDelete={() => onDelete(task.id)}
-										onSelect={() => onSelect(task.id)}
+										onSelect={additive => onSelect(task.id, additive)}
 										onUpdate={input => onUpdate(task.id, input)}
 										searchMatch={searchMatches?.has(task.id)}
-										selected={selectedTaskId === task.id}
+										selected={selectedTaskIds.has(task.id)}
 										syncState={syncStates.get(task.id)}
 										task={task}
 									/>
@@ -140,6 +144,7 @@ function SortHeader({ direction, label, onSort, selected }: { direction: TaskSor
 }
 
 function TaskRow({
+	active,
 	categories,
 	onDelete,
 	onSelect,
@@ -149,9 +154,10 @@ function TaskRow({
 	syncState,
 	task
 }: {
+	active: boolean;
 	categories: Category[];
 	onDelete: () => void;
-	onSelect: () => void;
+	onSelect: (additive: boolean) => void;
 	onUpdate: (input: UpdateTaskInput) => void;
 	searchMatch: boolean | undefined;
 	selected: boolean;
@@ -161,18 +167,28 @@ function TaskRow({
 	const disabled = Boolean(syncState);
 	const update = (input: Omit<UpdateTaskInput, "version">) => onUpdate({ version: task.version, ...input });
 	const category = categories.find(item => item.id === task.categoryId);
+	const drag = useDraggable({
+		id: task.id,
+		data: { type: "task", task, containerId: `list:${task.sprintStart}` },
+		disabled
+	});
 
 	return (
 		<tr
 			aria-busy={Boolean(syncState)}
 			aria-selected={selected}
-			className={[selected ? styles.selected : "", searchMatch === true ? styles.searchMatch : searchMatch === false ? styles.searchDim : "", syncState ? styles.syncing : ""]
+			className={[
+				selected ? styles.selected : "",
+				active ? styles.dragSource : "",
+				searchMatch === true ? styles.searchMatch : searchMatch === false ? styles.searchDim : "",
+				syncState ? styles.syncing : ""
+			]
 				.filter(Boolean)
 				.join(" ")}
 			data-task-card
 			data-task-id={task.id}
-			onClick={onSelect}
-			onFocus={onSelect}
+			onClick={event => onSelect(event.shiftKey)}
+			ref={drag.setNodeRef}
 			tabIndex={0}
 		>
 			<td>
@@ -234,6 +250,18 @@ function TaskRow({
 			</td>
 			<td>{task.completedDate ? formatShortDate(task.completedDate) : "—"}</td>
 			<td className={styles.actions}>
+				<button
+					{...drag.attributes}
+					{...drag.listeners}
+					aria-label={`拖曳 ${task.title}`}
+					className={styles.dragButton}
+					disabled={disabled}
+					onClick={event => event.stopPropagation()}
+					title="拖曳項目"
+					type="button"
+				>
+					<Icon name="drag" />
+				</button>
 				<button
 					aria-label={`刪除 ${task.title}`}
 					className={styles.deleteButton}

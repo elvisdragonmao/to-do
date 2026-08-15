@@ -255,6 +255,10 @@
 	background: color-mix(in srgb, var(--md-sys-color-primary) 8%, var(--md-sys-color-surface-container-highest));
 }
 
+.taskSelected {
+	background: color-mix(in srgb, var(--md-sys-color-primary) 14%, var(--md-sys-color-surface-container-highest));
+}
+
 .dragging {
 	opacity: 0;
 }
