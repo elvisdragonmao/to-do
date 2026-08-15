@@ -2,7 +2,7 @@
 	background: color-mix(in srgb, var(--md-sys-color-scrim) 45%, transparent);
 	inset: 0;
 	position: fixed;
-	transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+	transition: opacity var(--md-sys-motion-duration-enter) var(--md-sys-motion-easing-decelerate);
 	z-index: 80;
 }
 
@@ -25,8 +25,8 @@
 	padding: var(--space-5);
 	transform-origin: center;
 	transition:
-		opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized),
-		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
+		opacity var(--md-sys-motion-duration-enter) var(--md-sys-motion-easing-decelerate),
+		transform var(--md-sys-motion-duration-enter) var(--md-sys-motion-easing-decelerate);
 	width: min(100%, 520px);
 }
 
@@ -44,7 +44,13 @@
 
 .popup[data-starting-style],
 .popup[data-ending-style] {
-	transform: scale(0.94);
+	transform: translateY(8px) scale(0.96);
+}
+
+.popup[data-ending-style],
+.backdrop[data-ending-style] {
+	transition-duration: var(--md-sys-motion-duration-exit);
+	transition-timing-function: var(--md-sys-motion-easing-accelerate);
 }
 
 .header {

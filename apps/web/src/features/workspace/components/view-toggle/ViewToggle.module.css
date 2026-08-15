@@ -17,13 +17,19 @@
 	justify-content: center;
 	transition:
 		background-color var(--md-sys-motion-duration-short),
-		color var(--md-sys-motion-duration-short);
+		color var(--md-sys-motion-duration-short),
+		transform var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-emphasized);
 	width: 36px;
 }
 
 .toggle button[aria-pressed="true"] {
 	background: var(--md-sys-color-secondary-container);
 	color: var(--md-sys-color-on-secondary-container);
+	transform: scale(1.04);
+}
+
+.toggle button:active {
+	transform: scale(0.9);
 }
 
 .toggle svg {

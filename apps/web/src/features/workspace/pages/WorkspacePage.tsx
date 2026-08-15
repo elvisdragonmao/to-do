@@ -408,7 +408,11 @@ export function WorkspacePage() {
 						<button aria-label="開啟 Backlog" className={styles.mobileMenu} onClick={() => setSidebarOpen(true)} type="button">
 							<Icon name="menu" />
 						</button>
-						<h1>{formatSprintLabel(visibleSprintStart)}</h1>
+						<h1>
+							<span className={styles.sprintTitle} key={visibleSprintStart}>
+								{formatSprintLabel(visibleSprintStart)}
+							</span>
+						</h1>
 						<div className={styles.sync}>
 							<SyncIndicator />
 						</div>
@@ -419,81 +423,83 @@ export function WorkspacePage() {
 					</header>
 
 					<div className={styles.body}>
-						{view === "list" ? (
-							allTasksResult.isPending && !allTasksResult.data ? (
-								<div aria-busy="true" className={styles.contentState}>
-									<Spinner label="載入所有項目" />
-								</div>
-							) : allTasksResult.isError && !allTasksResult.data ? (
-								<div className={styles.contentState} role="alert">
-									<p>{allTasksResult.error.message}</p>
-									<Button onClick={() => allTasksResult.refetch()} type="button" variant="tonal">
-										重試
-									</Button>
-								</div>
+						<div className={styles.viewContent} key={view}>
+							{view === "list" ? (
+								allTasksResult.isPending && !allTasksResult.data ? (
+									<div aria-busy="true" className={styles.contentState}>
+										<Spinner label="載入所有項目" />
+									</div>
+								) : allTasksResult.isError && !allTasksResult.data ? (
+									<div className={styles.contentState} role="alert">
+										<p>{allTasksResult.error.message}</p>
+										<Button onClick={() => allTasksResult.refetch()} type="button" variant="tonal">
+											重試
+										</Button>
+									</div>
+								) : (
+									<TaskListView
+										categories={categories}
+										onDelete={deleteTask}
+										onSelect={taskId => selectTask(taskId)}
+										onUpdate={updateTask}
+										searchMatches={searchMatches}
+										selectedTaskId={selectedTaskId}
+										syncStates={syncStates}
+										tasks={allTasks}
+									/>
+								)
 							) : (
-								<TaskListView
-									categories={categories}
-									onDelete={deleteTask}
-									onSelect={taskId => selectTask(taskId)}
-									onUpdate={updateTask}
-									searchMatches={searchMatches}
-									selectedTaskId={selectedTaskId}
-									syncStates={syncStates}
-									tasks={allTasks}
-								/>
-							)
-						) : (
-							<section aria-label="Sprint 項目" className={[styles.pager, dragging ? styles.dragging : ""].filter(Boolean).join(" ")} ref={pagerRef}>
-								{pagerSprints.map((pageSprintStart, index) =>
-									pageSprintStart === sprintStart ? (
-										<section
-											aria-label={`${formatSprintLabel(sprintStart)} 項目`}
-											className={sprintPageStyles.page}
-											data-sprint-current
-											data-sprint-page
-											data-sprint-start={sprintStart}
-											key={pageSprintStart}
-										>
-											{tasksQuery.isPending && !tasksQuery.data ? (
-												<div aria-busy="true" className={styles.contentState}>
-													<Spinner label="載入中" />
-												</div>
-											) : tasksQuery.isError && !tasksQuery.data ? (
-												<div className={styles.contentState} role="alert">
-													<p>{tasksQuery.error.message}</p>
-													<Button onClick={() => tasksQuery.refetch()} type="button" variant="tonal">
-														重試
-													</Button>
-												</div>
-											) : (
-												<TaskBoard
-													activeTaskId={activeTask?.id ?? null}
-													activeTarget={activeTarget}
-													categories={categories}
-													numbered={numbered}
-													onCancelCreate={cancelCreate}
-													onCreate={createTask}
-													onSelect={taskId => selectTask(taskId)}
-													onStartCreate={startCreate}
-													onUpdate={updateTask}
-													projection={projection}
-													searchMatches={searchMatches}
-													selectedTaskId={selectedTaskId}
-													sprintStart={sprintStart}
-													syncStates={syncStates}
-													targeting={targeting}
-													tasks={tasks}
-													view={view}
-												/>
-											)}
-										</section>
-									) : (
-										<SprintPreviewPage categories={categories} key={pageSprintStart} sprintStart={pageSprintStart} tasks={pageTaskQueries[index]?.data?.tasks ?? []} view={view} />
-									)
-								)}
-							</section>
-						)}
+								<section aria-label="Sprint 項目" className={[styles.pager, dragging ? styles.dragging : ""].filter(Boolean).join(" ")} ref={pagerRef}>
+									{pagerSprints.map((pageSprintStart, index) =>
+										pageSprintStart === sprintStart ? (
+											<section
+												aria-label={`${formatSprintLabel(sprintStart)} 項目`}
+												className={sprintPageStyles.page}
+												data-sprint-current
+												data-sprint-page
+												data-sprint-start={sprintStart}
+												key={pageSprintStart}
+											>
+												{tasksQuery.isPending && !tasksQuery.data ? (
+													<div aria-busy="true" className={styles.contentState}>
+														<Spinner label="載入中" />
+													</div>
+												) : tasksQuery.isError && !tasksQuery.data ? (
+													<div className={styles.contentState} role="alert">
+														<p>{tasksQuery.error.message}</p>
+														<Button onClick={() => tasksQuery.refetch()} type="button" variant="tonal">
+															重試
+														</Button>
+													</div>
+												) : (
+													<TaskBoard
+														activeTaskId={activeTask?.id ?? null}
+														activeTarget={activeTarget}
+														categories={categories}
+														numbered={numbered}
+														onCancelCreate={cancelCreate}
+														onCreate={createTask}
+														onSelect={taskId => selectTask(taskId)}
+														onStartCreate={startCreate}
+														onUpdate={updateTask}
+														projection={projection}
+														searchMatches={searchMatches}
+														selectedTaskId={selectedTaskId}
+														sprintStart={sprintStart}
+														syncStates={syncStates}
+														targeting={targeting}
+														tasks={tasks}
+														view={view}
+													/>
+												)}
+											</section>
+										) : (
+											<SprintPreviewPage categories={categories} key={pageSprintStart} sprintStart={pageSprintStart} tasks={pageTaskQueries[index]?.data?.tasks ?? []} view={view} />
+										)
+									)}
+								</section>
+							)}
+						</div>
 						<div className={[styles.rail, dragging ? styles.railDragging : ""].filter(Boolean).join(" ")}>
 							<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={visibleSprintStart} tasks={visibleSprintTasks} />
 							{dragging ? <TaskTrash active /> : null}

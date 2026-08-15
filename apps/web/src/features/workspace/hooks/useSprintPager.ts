@@ -31,7 +31,7 @@ export function useSprintPager(
 		resetting.current = true;
 		navigating.current = false;
 		snapTargetSprint.current = null;
-		ignoreUntil.current = performance.now() + 350;
+		ignoreUntil.current = performance.now() + 650;
 		setPreviewSprint(sprintStart);
 		element.dataset.resetting = "";
 		element.scrollTop = currentPage.offsetTop;
@@ -154,8 +154,8 @@ export function useSprintPager(
 			const distance = targetPage.offsetTop - startTop;
 			const startTime = performance.now();
 			const step = (now: number) => {
-				const progress = Math.min(1, (now - startTime) / 220);
-				const eased = 1 - Math.pow(1 - progress, 4);
+				const progress = Math.min(1, (now - startTime) / 500);
+				const eased = materialEmphasized(progress);
 				element.scrollTop = startTop + distance * eased;
 				if (progress < 1) programmaticScrollFrame.current = requestAnimationFrame(step);
 			};
@@ -163,6 +163,24 @@ export function useSprintPager(
 		},
 		[active, locked, ref, setPreviewSprint, sprintStart]
 	);
+}
+
+/** Matches the Material emphasized easing curve: cubic-bezier(0.2, 0, 0, 1). */
+function materialEmphasized(progress: number): number {
+	let lower = 0;
+	let upper = 1;
+	let time = progress;
+	for (let index = 0; index < 10; index += 1) {
+		time = (lower + upper) / 2;
+		if (cubicBezier(time, 0.2, 0) < progress) lower = time;
+		else upper = time;
+	}
+	return cubicBezier(time, 0, 1);
+}
+
+function cubicBezier(time: number, firstControl: number, secondControl: number): number {
+	const inverse = 1 - time;
+	return 3 * inverse * inverse * time * firstControl + 3 * inverse * time * time * secondControl + time * time * time;
 }
 
 function sprintPages(element: HTMLElement): HTMLElement[] {
