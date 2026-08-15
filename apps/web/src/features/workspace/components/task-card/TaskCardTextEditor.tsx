@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
-import { linkify } from "../../../../shared/utils/linkify.js";
+import { linkify } from "@/shared/utils/linkify.js";
 import styles from "./TaskCardText.module.css";
 
 export function TaskCardTextEditor({

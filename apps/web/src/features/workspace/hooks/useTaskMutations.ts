@@ -1,7 +1,7 @@
 import { type CreateTaskInput, type SprintTasksResponse, type Task, type TaskListResponse, type UpdateTaskInput, resolvePlacementHistory } from "@em-todo/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useToast } from "../../../shared/components/toast/Toast.js";
+import { useToast } from "@/shared/components/toast/Toast.js";
 import { createTask, deleteTask, updateTask } from "../services/task-api.js";
 import { taskMutationKeys, taskQueryKeys, type TaskCacheSnapshot } from "../services/task-queries.js";
 

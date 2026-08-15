@@ -1,8 +1,8 @@
 import type { Task, UpdateTaskInput } from "@em-todo/shared";
 import { useEffect, useRef, useState } from "react";
 
-import { formatShortDate } from "../../../../shared/utils/date-format.js";
-import { Icon } from "../../../../shared/components/icon/Icon.js";
+import { formatShortDate } from "@/shared/utils/date-format.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
 import styles from "./TaskCardMetadata.module.css";
 
 export function TaskCardMetadata({

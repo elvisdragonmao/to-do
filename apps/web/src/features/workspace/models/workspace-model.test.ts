@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseCompactDate } from "../../../shared/utils/date-format.js";
+import { parseCompactDate } from "@/shared/utils/date-format.js";
 import { createInputForTarget, numberedTargets, updateForTarget, weekTargets } from "./workspace-model.js";
 
 describe("quick create", () => {

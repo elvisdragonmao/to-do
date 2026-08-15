@@ -2,12 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { categoryQueryKeys } from "../../categories/services/category-queries.js";
-import { Button } from "../../../shared/components/button/Button.js";
-import { Field, FieldError } from "../../../shared/components/field/Field.js";
-import { Spinner } from "../../../shared/components/spinner/Spinner.js";
-import { ApiRequestError } from "../../../shared/services/api-client.js";
-import { queryClient } from "../../../shared/services/query-client.js";
+import { categoryQueryKeys } from "@/features/categories/services/category-queries.js";
+import { Button } from "@/shared/components/button/Button.js";
+import { Field, FieldError } from "@/shared/components/field/Field.js";
+import { Spinner } from "@/shared/components/spinner/Spinner.js";
+import { ApiRequestError } from "@/shared/services/api-client.js";
+import { queryClient } from "@/shared/services/query-client.js";
 import { login } from "../services/auth-api.js";
 import { sessionQueryKey } from "../services/auth-query.js";
 import styles from "./LoginPage.module.css";

@@ -2,9 +2,9 @@ import { addDays, startOfSprint, type Task } from "@em-todo/shared";
 import { useDroppable } from "@dnd-kit/core";
 import { useEffect, useState, type CSSProperties } from "react";
 
-import { Icon } from "../../../../shared/components/icon/Icon.js";
-import { calendarGrid, formatMonth, sameMonth } from "../../../../shared/utils/date-format.js";
-import type { PlacementTarget } from "../../models/workspace-model.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
+import { calendarGrid, formatMonth, sameMonth } from "@/shared/utils/date-format.js";
+import type { PlacementTarget } from "@/features/workspace/models/workspace-model.js";
 import styles from "./MiniCalendar.module.css";
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];

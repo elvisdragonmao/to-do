@@ -1,6 +1,6 @@
 import { sessionSchema } from "@em-todo/shared";
 
-import { apiRequest } from "../../../shared/services/api-client.js";
+import { apiRequest } from "@/shared/services/api-client.js";
 
 export async function getSession(signal?: AbortSignal): Promise<boolean> {
 	const data = await apiRequest("/api/auth/session", sessionSchema, { signal });

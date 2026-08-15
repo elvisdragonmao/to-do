@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { logout } from "../../../auth/services/auth-api.js";
-import { Icon } from "../../../../shared/components/icon/Icon.js";
-import { Spinner } from "../../../../shared/components/spinner/Spinner.js";
-import { persister } from "../../../../shared/services/query-client.js";
+import { logout } from "@/features/auth/services/auth-api.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
+import { Spinner } from "@/shared/components/spinner/Spinner.js";
+import { persister } from "@/shared/services/query-client.js";
 import styles from "./UtilityDock.module.css";
 
 export function UtilityDock({ onHelp, onTheme, theme }: { onHelp: () => void; onTheme: () => void; theme: "light" | "dark" }) {

@@ -1,6 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
 
-import { Icon } from "../../../../shared/components/icon/Icon.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
 import styles from "./TaskTrash.module.css";
 
 export const TASK_TRASH_ID = "task-trash";

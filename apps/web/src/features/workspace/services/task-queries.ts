@@ -1,7 +1,7 @@
 import type { TaskListResponse } from "@em-todo/shared";
 import { queryOptions } from "@tanstack/react-query";
 
-import { queryClient } from "../../../shared/services/query-client.js";
+import { queryClient } from "@/shared/services/query-client.js";
 import { createTask, deleteTask, getAllTasks, getBacklogTasks, getSprintTasks, updateTask } from "./task-api.js";
 
 export const taskQueryKeys = {

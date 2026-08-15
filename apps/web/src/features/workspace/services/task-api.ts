@@ -1,6 +1,6 @@
 import { type CreateTaskInput, type UpdateTaskInput, sprintTasksResponseSchema, taskListResponseSchema, taskSchema } from "@em-todo/shared";
 
-import { apiRequest, apiRequestVoid } from "../../../shared/services/api-client.js";
+import { apiRequest, apiRequestVoid } from "@/shared/services/api-client.js";
 
 export function getSprintTasks(sprintStart: string, signal?: AbortSignal) {
 	return apiRequest(`/api/tasks?sprintStart=${encodeURIComponent(sprintStart)}`, sprintTasksResponseSchema, { signal });

@@ -1,9 +1,9 @@
 import { onlineManager, useIsFetching, useIsMutating, useMutationState } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
 
-import { Icon } from "../../../../shared/components/icon/Icon.js";
-import { Spinner } from "../../../../shared/components/spinner/Spinner.js";
-import { taskQueryKeys } from "../../services/task-queries.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
+import { Spinner } from "@/shared/components/spinner/Spinner.js";
+import { taskQueryKeys } from "@/features/workspace/services/task-queries.js";
 import styles from "./SyncIndicator.module.css";
 
 export function SyncIndicator() {

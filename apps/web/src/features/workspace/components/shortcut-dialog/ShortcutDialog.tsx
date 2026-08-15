@@ -1,4 +1,4 @@
-import { AppDialog } from "../../../../shared/components/app-dialog/AppDialog.js";
+import { AppDialog } from "@/shared/components/app-dialog/AppDialog.js";
 import styles from "./ShortcutDialog.module.css";
 
 const shortcuts: [string, string][] = [

@@ -2,14 +2,14 @@ import type { Category, Task, UpdateTaskInput } from "@em-todo/shared";
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 
-import { CountBadge } from "../../../../shared/components/count-badge/CountBadge.js";
-import { Icon } from "../../../../shared/components/icon/Icon.js";
-import { TargetKey } from "../../../../shared/components/target-key/TargetKey.js";
-import { formatDay } from "../../../../shared/utils/date-format.js";
+import { CountBadge } from "@/shared/components/count-badge/CountBadge.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
+import { TargetKey } from "@/shared/components/target-key/TargetKey.js";
+import { formatDay } from "@/shared/utils/date-format.js";
 import { QuickCreate, type QuickCreateValues } from "../quick-create/QuickCreate.js";
 import { TaskCard } from "../task-card/TaskCard.js";
-import { STATUS_TARGETS, tasksForTarget, weekTargets, type NumberedTarget, type PlacementTarget, type ViewMode } from "../../models/workspace-model.js";
-import type { SyncState } from "../../types/task.js";
+import { STATUS_TARGETS, tasksForTarget, weekTargets, type NumberedTarget, type PlacementTarget, type ViewMode } from "@/features/workspace/models/workspace-model.js";
+import type { SyncState } from "@/features/workspace/types/task.js";
 import styles from "./TaskBoard.module.css";
 
 export type DropProjection = { target: PlacementTarget; beforeTaskId?: string } | null;

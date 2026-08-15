@@ -1,9 +1,9 @@
 import type { Category, Task } from "@em-todo/shared";
 
-import { CountBadge } from "../../../../shared/components/count-badge/CountBadge.js";
-import { Icon } from "../../../../shared/components/icon/Icon.js";
+import { CountBadge } from "@/shared/components/count-badge/CountBadge.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
 import { TaskCardPreview } from "../task-card/TaskCardPreview.js";
-import { STATUS_TARGETS, tasksForTarget, weekTargets, type ViewMode } from "../../models/workspace-model.js";
+import { STATUS_TARGETS, tasksForTarget, weekTargets, type ViewMode } from "@/features/workspace/models/workspace-model.js";
 import pageStyles from "./SprintPage.module.css";
 import styles from "./TaskBoard.module.css";
 

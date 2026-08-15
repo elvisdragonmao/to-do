@@ -1,5 +1,5 @@
-import { Icon } from "../../../../shared/components/icon/Icon.js";
-import type { ViewMode } from "../../models/workspace-model.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
+import type { ViewMode } from "@/features/workspace/models/workspace-model.js";
 import styles from "./ViewToggle.module.css";
 
 export function ViewToggle({ onChange, value }: { onChange: (view: ViewMode) => void; value: ViewMode }) {

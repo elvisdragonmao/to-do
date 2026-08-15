@@ -1,7 +1,7 @@
 import type { Category } from "@em-todo/shared";
 import type { CSSProperties } from "react";
 
-import { Icon } from "../../../../shared/components/icon/Icon.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
 import styles from "./TaskCardActions.module.css";
 
 export function CategoryTag({

@@ -1,8 +1,8 @@
 import type { Category, Task } from "@em-todo/shared";
 
-import { Icon } from "../../../../shared/components/icon/Icon.js";
-import { formatShortDate } from "../../../../shared/utils/date-format.js";
-import { linkify } from "../../../../shared/utils/linkify.js";
+import { Icon } from "@/shared/components/icon/Icon.js";
+import { formatShortDate } from "@/shared/utils/date-format.js";
+import { linkify } from "@/shared/utils/linkify.js";
 import { CategoryTag } from "./CategoryTag.js";
 import { urgencyClass } from "./TaskCardActions.js";
 import actionStyles from "./TaskCardActions.module.css";
