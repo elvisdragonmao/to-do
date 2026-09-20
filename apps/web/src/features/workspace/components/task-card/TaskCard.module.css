@@ -21,6 +21,11 @@
 	animation: none;
 }
 
+.compact {
+	gap: var(--space-1);
+	padding: var(--space-2) var(--space-3);
+}
+
 .card:hover {
 	background: color-mix(in srgb, var(--md-sys-color-primary) 7%, var(--md-sys-color-surface-container-highest));
 	border-color: var(--md-sys-color-outline);

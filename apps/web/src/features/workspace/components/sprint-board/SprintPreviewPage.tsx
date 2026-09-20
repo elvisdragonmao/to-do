@@ -7,7 +7,19 @@ import { STATUS_TARGETS, tasksForTarget, weekTargets, type ViewMode } from "@/fe
 import pageStyles from "./SprintPage.module.css";
 import styles from "./TaskBoard.module.css";
 
-export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { categories: Category[]; sprintStart: string; tasks: Task[]; view: Exclude<ViewMode, "list"> }) {
+export function SprintPreviewPage({
+	categories,
+	compact,
+	sprintStart,
+	tasks,
+	view
+}: {
+	categories: Category[];
+	compact: boolean;
+	sprintStart: string;
+	tasks: Task[];
+	view: Exclude<ViewMode, "list">;
+}) {
 	const targets = view === "kanban" ? STATUS_TARGETS : weekTargets(sprintStart);
 
 	return (
@@ -28,7 +40,7 @@ export function SprintPreviewPage({ categories, sprintStart, tasks, view }: { ca
 							</header>
 							<div className={styles.tasks}>
 								{previewTasks.map(task => (
-									<TaskCardPreview category={categories.find(category => category.id === task.categoryId)} key={task.id} pagerPreview task={task} />
+									<TaskCardPreview category={categories.find(category => category.id === task.categoryId)} compact={compact} key={task.id} pagerPreview task={task} />
 								))}
 								{previewTasks.length === 0 ? (
 									<div aria-hidden="true" className={styles.empty}>

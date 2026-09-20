@@ -12,12 +12,14 @@ import textStyles from "./TaskCardText.module.css";
 
 export function TaskCardPreview({
 	category,
+	compact = false,
 	pagerPreview = false,
 	railTargeted = false,
 	selectionCount = 1,
 	task
 }: {
 	category: Category | undefined;
+	compact?: boolean;
 	pagerPreview?: boolean;
 	railTargeted?: boolean;
 	selectionCount?: number;
@@ -27,6 +29,7 @@ export function TaskCardPreview({
 		<article
 			className={[
 				cardStyles.card,
+				compact ? cardStyles.compact : "",
 				pagerPreview ? cardStyles.pagerPreview : cardStyles.overlay,
 				railTargeted ? cardStyles.railOverlay : "",
 				task.status === "DONE" ? cardStyles.done : "",
@@ -45,11 +48,13 @@ export function TaskCardPreview({
 					</span>
 				</div>
 			</header>
-			{task.description ? <div className={textStyles.description}>{pagerPreview ? task.description : linkify(task.description)}</div> : null}
-			<div className={styles.meta}>
-				{task.estimatedHours === null ? null : <span>{task.estimatedHours}h</span>}
-				{task.dueDate ? <span>{formatShortDate(task.dueDate)}</span> : null}
-			</div>
+			{task.description && !compact ? <div className={textStyles.description}>{pagerPreview ? task.description : linkify(task.description)}</div> : null}
+			{compact ? null : (
+				<div className={styles.meta}>
+					{task.estimatedHours === null ? null : <span>{task.estimatedHours}h</span>}
+					{task.dueDate ? <span>{formatShortDate(task.dueDate)}</span> : null}
+				</div>
+			)}
 		</article>
 	);
 }

@@ -8,6 +8,20 @@
 	padding: 2px;
 }
 
+.views {
+	align-items: center;
+	display: flex;
+	gap: 2px;
+}
+
+.divider {
+	background: var(--md-sys-color-outline-variant);
+	block-size: 20px;
+	flex: none;
+	inline-size: 1px;
+	margin-inline: 2px;
+}
+
 .toggle button {
 	align-items: center;
 	background: transparent;
@@ -30,6 +44,11 @@
 
 .toggle button:active {
 	transform: scale(0.9);
+}
+
+.toggle button:disabled {
+	opacity: 0.38;
+	transform: none;
 }
 
 .toggle svg {

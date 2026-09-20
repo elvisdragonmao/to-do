@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 
 import { CountBadge } from "@/shared/components/count-badge/CountBadge.js";
 import { Icon } from "@/shared/components/icon/Icon.js";
+import { useComposition } from "@/shared/hooks/useComposition.js";
 import { formatShortDate } from "@/shared/utils/date-format.js";
 import { linkify } from "@/shared/utils/linkify.js";
 import { CategoryTag } from "../task-card/CategoryTag.js";
@@ -336,6 +337,7 @@ function InlineTextEditor({
 	const ignoreBlur = useRef(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const { compositionProps, isComposing } = useComposition();
 	useEffect(() => {
 		if (!editing) setDraft(value);
 	}, [editing, value]);
@@ -379,6 +381,7 @@ function InlineTextEditor({
 		commit();
 	};
 	const keyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+		if (isComposing(event)) return event.stopPropagation();
 		if (event.key === "Escape") {
 			event.preventDefault();
 			cancel();
@@ -401,6 +404,7 @@ function InlineTextEditor({
 	if (multiline) {
 		return (
 			<textarea
+				{...compositionProps}
 				aria-label={label}
 				className={[styles.inlineEditor, editorClassName].filter(Boolean).join(" ")}
 				maxLength={maxLength}
@@ -417,6 +421,7 @@ function InlineTextEditor({
 
 	return (
 		<input
+			{...compositionProps}
 			aria-label={label}
 			className={[styles.inlineEditor, editorClassName].filter(Boolean).join(" ")}
 			maxLength={maxLength}

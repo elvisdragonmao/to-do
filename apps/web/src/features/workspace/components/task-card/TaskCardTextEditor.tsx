@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
+import { useComposition } from "@/shared/hooks/useComposition.js";
 import { linkify } from "@/shared/utils/linkify.js";
 import styles from "./TaskCardText.module.css";
 
 export function TaskCardTextEditor({
 	actions,
+	compact,
 	description,
 	disabled,
 	onCommit,
 	title
 }: {
 	actions: ReactNode;
+	compact: boolean;
 	description: string;
 	disabled: boolean;
 	onCommit: (input: { title?: string; description?: string }) => void;
@@ -21,6 +24,7 @@ export function TaskCardTextEditor({
 	const [draftDescription, setDraftDescription] = useState(description);
 	const titleRef = useRef<HTMLInputElement>(null);
 	const descriptionRef = useRef<HTMLTextAreaElement>(null);
+	const { compositionProps, isComposing } = useComposition();
 
 	useEffect(() => {
 		if (editing !== null) return;
@@ -65,6 +69,8 @@ export function TaskCardTextEditor({
 		});
 	};
 	const keyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+		// 組字中的按鍵屬於輸入法，不要讓卡片的拖曳／選取把它當成操作（但也不能 preventDefault，輸入法還要用）。
+		if (isComposing(event)) return event.stopPropagation();
 		if (event.key === "Escape") {
 			event.preventDefault();
 			cancel();
@@ -77,7 +83,8 @@ export function TaskCardTextEditor({
 		}
 		if (event.key === "Enter" && editing === "title") {
 			event.preventDefault();
-			setEditing("description");
+			if (compact) commit();
+			else setEditing("description");
 		}
 	};
 
@@ -86,6 +93,7 @@ export function TaskCardTextEditor({
 			<header className={styles.header}>
 				{editing === "title" ? (
 					<input
+						{...compositionProps}
 						aria-label="標題"
 						className={`${styles.title} ${styles.inlineEditor}`}
 						maxLength={160}
@@ -105,6 +113,7 @@ export function TaskCardTextEditor({
 
 			{editing === "description" ? (
 				<textarea
+					{...compositionProps}
 					aria-label="描述"
 					className={`${styles.description} ${styles.inlineEditor}`}
 					maxLength={4000}
@@ -115,7 +124,7 @@ export function TaskCardTextEditor({
 					rows={2}
 					value={draftDescription}
 				/>
-			) : description ? (
+			) : description && !compact ? (
 				<button className={`${styles.description} ${styles.inlineValue}`} disabled={disabled} onClick={() => begin("description")} title="編輯描述" type="button">
 					{linkify(description)}
 				</button>

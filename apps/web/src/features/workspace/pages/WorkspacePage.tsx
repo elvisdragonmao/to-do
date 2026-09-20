@@ -119,6 +119,7 @@ export function WorkspacePage() {
 		const stored = localStorage.getItem("em-todo-view");
 		return stored === "week" || stored === "list" ? stored : "kanban";
 	});
+	const [compact, setCompactState] = useState(() => localStorage.getItem("em-todo-compact") === "on");
 	const allTasksResult = useQuery({ ...allTasksQuery(), enabled: view === "list" });
 	const [search, setSearch] = useState("");
 	const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase("zh-TW"));
@@ -169,6 +170,10 @@ export function WorkspacePage() {
 		});
 	}, [backlogTasks, categories, deferredSearch]);
 
+	const setCompact = useCallback((next: boolean) => {
+		setCompactState(next);
+		localStorage.setItem("em-todo-compact", next ? "on" : "off");
+	}, []);
 	const setView = useCallback((next: ViewMode) => {
 		startTransition(() => setViewState(next));
 		localStorage.setItem("em-todo-view", next);
@@ -519,7 +524,7 @@ export function WorkspacePage() {
 						<div className={styles.sync}>
 							<SyncIndicator />
 						</div>
-						<ViewToggle onChange={setView} value={view} />
+						<ViewToggle compact={compact} onChange={setView} onCompactChange={setCompact} value={view} />
 						<button aria-label="新增項目" className={styles.mobileCreate} onClick={beginTargeting} title="新增項目 (N)" type="button">
 							<Icon name="add" />
 						</button>
@@ -580,6 +585,7 @@ export function WorkspacePage() {
 														activeTaskIds={activeTaskIds}
 														activeTarget={activeTarget}
 														categories={categories}
+														compact={compact}
 														numbered={numbered}
 														onCancelCreate={cancelCreate}
 														onCreate={createTask}
@@ -598,7 +604,7 @@ export function WorkspacePage() {
 												)}
 											</section>
 										) : (
-											<SprintPreviewPage categories={categories} key={pageSprintStart} sprintStart={pageSprintStart} tasks={pageTaskQueries[index]?.data?.tasks ?? []} view={view} />
+											<SprintPreviewPage categories={categories} compact={compact} key={pageSprintStart} sprintStart={pageSprintStart} tasks={pageTaskQueries[index]?.data?.tasks ?? []} view={view} />
 										)
 									)}
 								</section>
@@ -621,6 +627,7 @@ export function WorkspacePage() {
 				) : activeTask ? (
 					<TaskCardPreview
 						category={categories.find(category => category.id === activeTask.categoryId)}
+						compact={compact && view !== "list"}
 						railTargeted={trashTargeted || Boolean(projection?.target.id.startsWith("calendar:"))}
 						selectionCount={activeDraggedTasks.length}
 						task={activeTask}

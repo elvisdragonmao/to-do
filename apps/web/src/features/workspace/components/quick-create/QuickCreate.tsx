@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
+import { useComposition } from "@/shared/hooks/useComposition.js";
 import { parseCompactDate } from "@/shared/utils/date-format.js";
 import styles from "./QuickCreate.module.css";
 
@@ -17,10 +18,36 @@ export function QuickCreate({ label, onCancel, onCreate }: { label: string; onCa
 	const [hours, setHours] = useState("");
 	const [deadline, setDeadline] = useState("");
 	const [error, setError] = useState<string | null>(null);
+	const formRef = useRef<HTMLFormElement>(null);
 	const titleRef = useRef<HTMLInputElement>(null);
 	const descriptionRef = useRef<HTMLTextAreaElement>(null);
+	const dismissRef = useRef<() => void>(() => {});
+	const { compositionProps, isComposing } = useComposition();
 
 	useEffect(() => titleRef.current?.focus(), []);
+	useEffect(() => {
+		dismissRef.current = () => {
+			if (!title.trim() && !description.trim() && !hours && !deadline) onCancel();
+			else formRef.current?.requestSubmit();
+		};
+	});
+	// 手機沒有 ⌘Enter，點表單以外的地方就當作要建立。
+	useEffect(() => {
+		let armed = false;
+		const arm = window.setTimeout(() => {
+			armed = true;
+		}, 0);
+		const handlePointerDown = (event: PointerEvent) => {
+			const form = formRef.current;
+			if (!armed || !form || form.contains(event.target as Node)) return;
+			dismissRef.current();
+		};
+		window.addEventListener("pointerdown", handlePointerDown, true);
+		return () => {
+			window.clearTimeout(arm);
+			window.removeEventListener("pointerdown", handlePointerDown, true);
+		};
+	}, []);
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
@@ -34,6 +61,7 @@ export function QuickCreate({ label, onCancel, onCreate }: { label: string; onCa
 	};
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+		if (isComposing(event)) return event.stopPropagation();
 		if (event.key === "Escape") {
 			event.preventDefault();
 			onCancel();
@@ -44,7 +72,7 @@ export function QuickCreate({ label, onCancel, onCreate }: { label: string; onCa
 	};
 
 	return (
-		<form aria-label={`新增到 ${label}`} className={styles.form} onKeyDown={handleKeyDown} onSubmit={submit}>
+		<form {...compositionProps} aria-label={`新增到 ${label}`} className={styles.form} onKeyDown={handleKeyDown} onSubmit={submit} ref={formRef}>
 			<div className={styles.target}>{label}</div>
 			<label>
 				<span className="sr-only">標題</span>
@@ -52,7 +80,7 @@ export function QuickCreate({ label, onCancel, onCreate }: { label: string; onCa
 					maxLength={160}
 					onChange={event => setTitle(event.target.value)}
 					onKeyDown={event => {
-						if (event.key !== "Enter" || event.metaKey || event.ctrlKey) return;
+						if (event.key !== "Enter" || event.metaKey || event.ctrlKey || isComposing(event)) return;
 						event.preventDefault();
 						setShowDescription(true);
 						requestAnimationFrame(() => descriptionRef.current?.focus());

@@ -18,6 +18,7 @@ type TaskBoardProps = {
 	activeTaskIds: Set<string>;
 	activeTarget: PlacementTarget | null;
 	categories: Category[];
+	compact: boolean;
 	numbered: NumberedTarget[];
 	onCancelCreate: () => void;
 	onCreate: (target: PlacementTarget, values: QuickCreateValues) => void;
@@ -49,6 +50,7 @@ function BoardColumn({
 	activeTaskIds,
 	activeTarget,
 	categories,
+	compact,
 	numbered,
 	onCancelCreate,
 	onCreate,
@@ -92,6 +94,7 @@ function BoardColumn({
 						<TaskCard
 							categories={categories}
 							category={categories.find(category => category.id === task.categoryId)}
+							compact={compact}
 							containerId={target.id}
 							onSelect={onSelect}
 							onUpdate={onUpdate}

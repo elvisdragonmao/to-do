@@ -12,6 +12,7 @@ import { TaskCardTextEditor } from "./TaskCardTextEditor.js";
 type TaskCardProps = {
 	categories: Category[];
 	category: Category | undefined;
+	compact: boolean;
 	containerId: string;
 	onSelect: (taskId: string, additive: boolean) => void;
 	onUpdate: (taskId: string, input: UpdateTaskInput) => void;
@@ -22,7 +23,7 @@ type TaskCardProps = {
 	task: Task;
 };
 
-export const TaskCard = memo(function TaskCard({ categories, category, containerId, onSelect, onUpdate, searchMatch, selected, showStatus, syncState, task }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({ categories, category, compact, containerId, onSelect, onUpdate, searchMatch, selected, showStatus, syncState, task }: TaskCardProps) {
 	const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
 		id: task.id,
 		data: { type: "task", task, containerId },
@@ -31,6 +32,7 @@ export const TaskCard = memo(function TaskCard({ categories, category, container
 	const update = <Key extends keyof UpdateTaskInput>(key: Key, value: UpdateTaskInput[Key]) => onUpdate(task.id, { version: task.version, [key]: value });
 	const className = [
 		styles.card,
+		compact ? styles.compact : "",
 		selected ? styles.selected : "",
 		task.status === "DONE" ? styles.done : "",
 		syncState ? styles[syncState] : "",
@@ -65,12 +67,13 @@ export const TaskCard = memo(function TaskCard({ categories, category, container
 						urgency={task.urgency}
 					/>
 				}
+				compact={compact}
 				description={task.description}
 				disabled={Boolean(syncState)}
 				onCommit={input => onUpdate(task.id, { version: task.version, ...input })}
 				title={task.title}
 			/>
-			<TaskCardMetadata disabled={Boolean(syncState)} onUpdate={update} showStatus={showStatus} task={task} />
+			{compact ? null : <TaskCardMetadata disabled={Boolean(syncState)} onUpdate={update} showStatus={showStatus} task={task} />}
 
 			{syncState ? (
 				<div className={styles.sync} role="status">
