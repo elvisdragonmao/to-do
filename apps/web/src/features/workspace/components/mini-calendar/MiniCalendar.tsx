@@ -1,10 +1,10 @@
 import { addDays, startOfSprint, type Task } from "@em-todo/shared";
 import { useDroppable } from "@dnd-kit/core";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { Icon } from "@/shared/components/icon/Icon.js";
 import { calendarGrid, formatMonth, sameMonth } from "@/shared/utils/date-format.js";
-import type { PlacementTarget } from "@/features/workspace/models/workspace-model.js";
+import { overdueDates, type PlacementTarget } from "@/features/workspace/models/workspace-model.js";
 import styles from "./MiniCalendar.module.css";
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -13,12 +13,15 @@ export function MiniCalendar({
 	dragActive = false,
 	interactive = true,
 	onSelectSprint,
+	plannedTasks = [],
 	sprintStart,
 	tasks
 }: {
 	dragActive?: boolean;
 	interactive?: boolean;
 	onSelectSprint: (sprintStart: string) => void;
+	/** 所有 sprint 的任務，用來標出已過期仍未完成的日子。 */
+	plannedTasks?: Task[];
 	sprintStart: string;
 	tasks: Task[];
 }) {
@@ -26,6 +29,7 @@ export function MiniCalendar({
 	useEffect(() => setAnchor(sprintStart), [sprintStart]);
 	const dates = calendarGrid(anchor);
 	const today = localIsoDate(new Date());
+	const overdue = useMemo(() => overdueDates(plannedTasks, today), [plannedTasks, today]);
 	const sprintEnd = addDays(sprintStart, 6);
 	const cleared = tasks.length > 0 && tasks.every(task => task.status === "DONE");
 	const selectedWeek = Math.max(0, Math.floor(dates.findIndex(date => date === sprintStart) / 7));
@@ -58,6 +62,7 @@ export function MiniCalendar({
 						interactive={interactive}
 						key={date}
 						onSelectSprint={onSelectSprint}
+						overdue={overdue.has(date)}
 						sprintEnd={sprintEnd}
 						sprintStart={sprintStart}
 						today={date === today}
@@ -75,6 +80,7 @@ function CalendarDay({
 	dropEnabled,
 	interactive,
 	onSelectSprint,
+	overdue,
 	sprintEnd,
 	sprintStart,
 	today
@@ -85,6 +91,7 @@ function CalendarDay({
 	dropEnabled: boolean;
 	interactive: boolean;
 	onSelectSprint: (sprintStart: string) => void;
+	overdue: boolean;
 	sprintEnd: string;
 	sprintStart: string;
 	today: boolean;
@@ -106,12 +113,13 @@ function CalendarDay({
 	return (
 		<button
 			aria-current={today ? "date" : undefined}
-			aria-label={dropEnabled ? `排到 ${date}` : date}
+			aria-label={dropEnabled ? `排到 ${date}` : overdue ? `${date}，有未完成項目` : date}
 			aria-pressed={inSprint}
 			className={[
 				sameMonth(date, anchor) ? "" : styles.outside,
 				inSprint ? styles.currentSprint : "",
 				inSprint && cleared ? styles.cleared : "",
+				overdue ? styles.overdue : "",
 				today ? styles.today : "",
 				dropEnabled ? styles.dropEnabled : "",
 				isOver ? styles.dropOver : ""

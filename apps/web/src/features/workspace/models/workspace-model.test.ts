@@ -1,7 +1,8 @@
+import type { Task } from "@em-todo/shared";
 import { describe, expect, it } from "vitest";
 
 import { parseCompactDate } from "@/shared/utils/date-format.js";
-import { createInputForTarget, numberedTargets, sortOrdersBefore, updateForTarget, weekTargets } from "./workspace-model.js";
+import { createInputForTarget, numberedTargets, overdueDates, sortOrdersBefore, updateForTarget, weekTargets } from "./workspace-model.js";
 
 describe("quick create", () => {
 	it("maps Kanban numbers to statuses and backlog categories", () => {
@@ -120,5 +121,39 @@ describe("group drag ordering", () => {
 	it("allocates enough room before the first and after the last item", () => {
 		expect(sortOrdersBefore(tasks, "first", 2)).toEqual([-2048, -1024]);
 		expect(sortOrdersBefore(tasks, undefined, 2)).toEqual([3072, 4096]);
+	});
+});
+
+describe("overdue calendar days", () => {
+	const task = (overrides: Partial<Task>): Task => ({
+		id: "task",
+		title: "task",
+		description: "",
+		createdAt: "2026-08-01T00:00:00.000Z",
+		updatedAt: "2026-08-01T00:00:00.000Z",
+		isBacklog: false,
+		sprintStart: "2026-08-10",
+		scheduledDate: null,
+		initialPlannedDate: "2026-08-10",
+		lastPlannedDate: "2026-08-10",
+		categoryId: "uncategorized",
+		urgency: 2,
+		estimatedHours: null,
+		dueDate: null,
+		completedDate: null,
+		status: "TODO",
+		sortOrder: 0,
+		version: 1,
+		...overrides
+	});
+
+	it("marks past scheduled days and treats unscheduled sprint tasks as Sunday", () => {
+		const tasks = [task({ scheduledDate: "2026-08-12" }), task({}), task({ sprintStart: "2026-08-17", scheduledDate: "2026-08-18" })];
+		expect([...overdueDates(tasks, "2026-08-18")].sort()).toEqual(["2026-08-12", "2026-08-16"]);
+	});
+
+	it("ignores done, backlog, and today's tasks", () => {
+		const tasks = [task({ scheduledDate: "2026-08-12", status: "DONE" }), task({ isBacklog: true }), task({ sprintStart: "2026-08-17", scheduledDate: "2026-08-17" })];
+		expect(overdueDates(tasks, "2026-08-17").size).toBe(0);
 	});
 });

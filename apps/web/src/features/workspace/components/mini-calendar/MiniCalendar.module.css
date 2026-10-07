@@ -102,6 +102,12 @@
 	color: var(--md-sys-color-on-success-container);
 }
 
+.grid button.overdue {
+	background: var(--md-sys-color-error-container);
+	color: var(--md-sys-color-on-error-container);
+	font-weight: 700;
+}
+
 .grid button.dropEnabled {
 	cursor: copy;
 }

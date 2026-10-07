@@ -119,3 +119,14 @@ export function sortOrdersBefore(tasks: Task[], beforeTaskId: string | undefined
 export function adjacentSprint(sprintStart: string, direction: -1 | 1): string {
 	return addDays(sprintStart, direction * 7);
 }
+
+// 未完成任務的「到期日」：有排日期就用那天，只排到 sprint 的就算該週星期天。
+export function overdueDates(tasks: Task[], today: string): Set<string> {
+	const dates = new Set<string>();
+	for (const task of tasks) {
+		if (task.isBacklog || task.status === "DONE") continue;
+		const date = task.scheduledDate ?? addDays(task.sprintStart, 6);
+		if (date < today) dates.add(date);
+	}
+	return dates;
+}

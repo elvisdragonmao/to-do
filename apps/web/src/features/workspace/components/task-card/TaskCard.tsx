@@ -3,6 +3,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { memo } from "react";
 
 import { Spinner } from "@/shared/components/spinner/Spinner.js";
+import { isEditableTarget, preventShiftSelection } from "@/shared/utils/pointer-selection.js";
 import type { SyncState } from "@/features/workspace/types/task.js";
 import { TaskCardActions } from "./TaskCardActions.js";
 import styles from "./TaskCard.module.css";
@@ -53,6 +54,12 @@ export const TaskCard = memo(function TaskCard({ categories, category, compact, 
 			data-task-card
 			data-task-id={task.id}
 			onClick={event => onSelect(task.id, event.shiftKey)}
+			onKeyDown={event => {
+				// 卡片內的輸入框打空白／Enter 不能被 dnd-kit 的 KeyboardSensor 當成「拿起卡片」。
+				if (isEditableTarget(event)) return;
+				listeners?.onKeyDown?.(event);
+			}}
+			onMouseDown={preventShiftSelection}
 			ref={setNodeRef}
 			tabIndex={0}
 		>

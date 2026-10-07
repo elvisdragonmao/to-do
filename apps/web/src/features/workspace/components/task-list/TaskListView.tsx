@@ -7,6 +7,7 @@ import { Icon } from "@/shared/components/icon/Icon.js";
 import { useComposition } from "@/shared/hooks/useComposition.js";
 import { formatShortDate } from "@/shared/utils/date-format.js";
 import { linkify } from "@/shared/utils/linkify.js";
+import { preventShiftSelection } from "@/shared/utils/pointer-selection.js";
 import { CategoryTag } from "../task-card/CategoryTag.js";
 import {
 	sortTasks,
@@ -189,6 +190,7 @@ function TaskRow({
 			data-task-card
 			data-task-id={task.id}
 			onClick={event => onSelect(event.shiftKey)}
+			onMouseDown={preventShiftSelection}
 			ref={drag.setNodeRef}
 			tabIndex={0}
 		>

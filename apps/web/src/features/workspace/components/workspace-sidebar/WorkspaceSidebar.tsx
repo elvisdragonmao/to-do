@@ -7,6 +7,7 @@ import { CountBadge } from "@/shared/components/count-badge/CountBadge.js";
 import { Icon } from "@/shared/components/icon/Icon.js";
 import { TargetKey } from "@/shared/components/target-key/TargetKey.js";
 import { formatShortDate } from "@/shared/utils/date-format.js";
+import { preventShiftSelection } from "@/shared/utils/pointer-selection.js";
 import { QuickCreate, type QuickCreateValues } from "../quick-create/QuickCreate.js";
 import type { DropProjection } from "../sprint-board/TaskBoard.js";
 import { tasksForTarget, type NumberedTarget, type PlacementTarget } from "@/features/workspace/models/workspace-model.js";
@@ -215,6 +216,7 @@ function BacklogTask({ containerId, onSelect, selected, syncState, task }: { con
 			data-task-id={task.id}
 			disabled={Boolean(syncState)}
 			onClick={event => onSelect(event.shiftKey)}
+			onMouseDown={preventShiftSelection}
 			ref={setNodeRef}
 			type="button"
 		>

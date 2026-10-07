@@ -120,7 +120,7 @@ export function WorkspacePage() {
 		return stored === "week" || stored === "list" ? stored : "kanban";
 	});
 	const [compact, setCompactState] = useState(() => localStorage.getItem("em-todo-compact") === "on");
-	const allTasksResult = useQuery({ ...allTasksQuery(), enabled: view === "list" });
+	const allTasksResult = useQuery(allTasksQuery());
 	const [search, setSearch] = useState("");
 	const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase("zh-TW"));
 	const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(() => new Set());
@@ -611,7 +611,7 @@ export function WorkspacePage() {
 							)}
 						</div>
 						<div className={[styles.rail, dragging ? styles.railDragging : ""].filter(Boolean).join(" ")}>
-							<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} sprintStart={visibleSprintStart} tasks={visibleSprintTasks} />
+							<MiniCalendar dragActive={dragging} onSelectSprint={selectSprint} plannedTasks={allTasks} sprintStart={visibleSprintStart} tasks={visibleSprintTasks} />
 							{dragging ? <TaskTrash active /> : null}
 						</div>
 					</div>
