@@ -123,6 +123,40 @@ docker compose up --build -d
 
 開啟 http://localhost:3000。SQLite 儲存在 `em-to-do-data` named volume。
 
+### 升級前備份
+
+API 以 WAL 模式開啟 SQLite，尚未 checkpoint 的寫入只在 `-wal` 檔裡；服務執行中直接複製 volume 內的 `.sqlite` 檔可能得到不一致的資料。容器正常關閉時會把 WAL 併回主檔並刪除 `-shm`/`-wal`，所以也不要假設這三個檔案一定存在。
+
+改用容器內的 `VACUUM INTO` 取得一致快照，不必停止服務，也不需要讀取 Docker volume 目錄的權限：
+
+```bash
+mkdir -p backups
+docker compose exec -T em-to-do node - <<'EOF'
+const { rmSync } = require("node:fs");
+const { DatabaseSync } = require("node:sqlite");
+const snapshot = "/tmp/em-to-do-snapshot.sqlite";
+rmSync(snapshot, { force: true });
+const db = new DatabaseSync("/app/data/em-to-do.sqlite");
+db.exec("PRAGMA busy_timeout = 5000");
+db.exec(`VACUUM INTO '${snapshot}'`);
+const check = new DatabaseSync(snapshot).prepare("PRAGMA integrity_check").get();
+if (check.integrity_check !== "ok") throw new Error(`integrity_check: ${check.integrity_check}`);
+console.log("snapshot ok");
+EOF
+docker compose cp em-to-do:/tmp/em-to-do-snapshot.sqlite "backups/em-to-do-pre-$(date -u +%Y%m%dT%H%M%SZ).sqlite"
+docker compose exec -T em-to-do rm /tmp/em-to-do-snapshot.sqlite
+```
+
+確認輸出 `snapshot ok` 且備份檔已寫入後，再更新程式並重建容器：
+
+```bash
+git pull --ff-only
+docker compose build
+docker compose up -d
+```
+
+先 build 再 `up -d`，舊容器在 build 期間會繼續服務。
+
 ## PWA 與離線行為
 
 - Production build 會產生 manifest、service worker、一般圖示與 maskable 圖示。

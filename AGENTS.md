@@ -36,3 +36,9 @@ PRs should describe the changed area, summarize the user-visible or developer-vi
 If no validation was run, state that explicitly and explain why. Do not claim to have run commands that were not actually executed.
 
 For UI changes that are not easily captured in a screenshot, describe the visual change and any manual checks performed.
+
+## Deployment
+
+Before recreating a production container, take a SQLite snapshot with the procedure in `README.md` under "升級前備份". Do not copy the `.sqlite`, `-wal`, or `-shm` files out of the Docker volume directly; the database runs in WAL mode and the volume directory may not be readable by the deploy user.
+
+Treat the backup as a gate: only run `docker compose up -d` after the snapshot printed `snapshot ok` and the backup file exists. If the backup step fails, stop and report it instead of continuing the deploy.
